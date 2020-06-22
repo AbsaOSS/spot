@@ -1,4 +1,5 @@
 # Spot
+![Alt text](spot_logo.png?raw=true "Title")
 
 **Spot** is **S**park **P**arameter **O**p**t**imizer.
 It includes the following key modules:

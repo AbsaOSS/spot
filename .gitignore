@@ -1,7 +1,7 @@
 *.ini
 output/*
-*/.DS_Store
 .DS_Store
+*.iml
 *.pyc
 .idea
 venv
