@@ -29,3 +29,4 @@ class CrawlerArgs:
 
     def parse_args(self, argv=None):
         return self.parser.parse_args(argv)
+    

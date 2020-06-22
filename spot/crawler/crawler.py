@@ -27,7 +27,6 @@ from spot.crawler.elastic import Elastic
 from spot.crawler.crawler_args import CrawlerArgs
 
 from spot.enceladus.menas_aggregator import MenasAggregator
-from spot.enceladus.classification import is_enceladus_app
 
 
 logger = logging.getLogger(__name__)
@@ -42,7 +41,6 @@ def get_default_classification(name):
         'type': name,
     }
     values = re.split('[ ;,.\-\%\_]',name)
-    #values = name.split(' ')
     i = 1
     for val in values:
         classification[i] = val
@@ -90,7 +88,7 @@ class Crawler:
         self._name_filter_func = name_filter_func
         self._save_obj = save_obj
         self._app_specific_obj = app_specific_obj
-        self._last_date = last_date
+        self._latest_seen_date = last_date
         # list of apps with the same last date, seen in last iteration
         self._previous_tabu_set = seen_app_ids
         # tabu list being constructed for next iteration
@@ -122,15 +120,15 @@ class Crawler:
     def process_new_runs(self):
         processing_start = datetime.now()
         processing_counter = 0
-        logger.info(f'Fetching new apps, completed since {self._last_date}')
-        apps = self._agg.next_app(min_end_date=self._last_date,
+        logger.info(f'Fetching new apps, completed since {self._latest_seen_date}')
+        apps = self._agg.next_app(min_end_date=self._latest_seen_date,
                                   app_status='completed')
         new_counter = 0
         matched_counter = 0
         self._new_tabu_set = set()
         for app in apps:
             # update latest seen date
-            self._process_min_end_date(app)
+            self._update_latest_seen_date(app)
             # check if app seen before
             app_id = app.get('id')
             if app_id not in self._previous_tabu_set:
@@ -153,19 +151,25 @@ class Crawler:
         logger.info(f'Iteration finished. New apps: {new_counter} '
                      f'matching apps : {matched_counter}')
         logger.debug(f'tabu_set: {self._previous_tabu_set}'
-                     f' last date: {self._last_date }')
+                     f' last date: {self._latest_seen_date }')
 
-    def _process_min_end_date(self, app):
+    # we need to keep track of which applications were already processed.
+    # for this reason, we store the latest seen completion date.
+    # We use that date in the next iteration when fetching new apps from Spark history
+    # Because multiple apps may have completed at the same time,
+    # and, also, the last seen application will always appear in the next iteration again,
+    # we also store a _tabu_set: a set of app ids, completed at _latest_seen_date
+    def _update_latest_seen_date(self, app):
         app_id = app.get('id')
         for attempt in app.get('attempts'):
-            ct = attempt.get('endTime')
-            if ct is not None:
-                    if (self._last_date is None) \
-                            or (ct > self._last_date):
+            end_time = attempt.get('endTime')
+            if end_time is not None:
+                    if (self._latest_seen_date is None) \
+                            or (end_time > self._latest_seen_date):
                         # new latest app found
-                        self._last_date = ct
+                        self._latest_seen_date = end_time
                         self._new_tabu_set = {app_id}
-                    elif ct == self._last_date:
+                    elif end_time == self._latest_seen_date:
                         # another app completed same time
                         self._new_tabu_set.add(app_id)
                         logger.debug(f'added app {app_id} '
@@ -181,12 +185,12 @@ def main():
                                         conf.menas_username,
                                         conf.menas_password)
 
-    es = Elastic(raw_index_name=conf.elastic_raw_index,
+    elastic = Elastic(raw_index_name=conf.elastic_raw_index,
                  agg_index_name=conf.elastic_agg_index)
 
 
     # fing starting end date and list of seen apps
-    last_seen_end_date, seen_ids = es.get_latests_time_ids()
+    last_seen_end_date, seen_ids = elastic.get_latests_time_ids()
     logger.debug(f'Latest stored end date: {last_seen_end_date} seen apps: {seen_ids}')
 
     logger.debug(f'param_end_date: {cmd_args.min_end_date}')
@@ -200,9 +204,9 @@ def main():
         seen_ids = dict()
     logger.debug(f'Will get apps completed after: {last_seen_end_date}')
 
-    cr = Crawler(conf.spark_history_url,
+    crawler = Crawler(conf.spark_history_url,
                  app_specific_obj=menas_ag,
-                 save_obj=es,
+                 save_obj=elastic,
                  last_date=last_seen_end_date,
                  seen_app_ids=seen_ids
                  )
@@ -210,8 +214,8 @@ def main():
     sleep_seconds = conf.crawler_sleep_seconds
 
     while True:
-        cr.process_new_runs()
-        es.log_indexes_stats()
+        crawler.process_new_runs()
+        elastic.log_indexes_stats()
 
         time.sleep(sleep_seconds)
 

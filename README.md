@@ -22,7 +22,7 @@ It includes the following key modules:
 
 ### Crawler
 Aggregates [Spark history](https://spark.apache.org/docs/latest/monitoring.html#rest-api)
- data and stores it to [elsaticsearch](https://github.com/elastic/elasticsearch) 
+ data and stores it to [elasticsearch](https://github.com/elastic/elasticsearch) 
 for further analysis e.g. using [Kibana](https://github.com/elastic/kibana).
 Spark history data from several 
 [APIs](https://spark.apache.org/docs/latest/monitoring.html#rest-api)

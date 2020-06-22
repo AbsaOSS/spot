@@ -115,36 +115,10 @@ class Elastic:
         self._raw_index = raw_index_name
         self._agg_index = agg_index_name
 
-        # remove
-        #if app_spec_mapping is not None:
-        #    dyn_templs = app_spec_mapping.get('mappings').get('dynamic_templates')
-        #    for tmpl in dyn_templs:
-        #        dynamic_mapping['mappings']['dynamic_templates'].append(tmpl)
-        #self._mapping = dynamic_mapping
-
         logger.debug(f'Initializing elasticsearch, checking indexes')
         self.log_indexes_stats()
 
-        #if not self._es.indices.exists(index=self._raw_index):
-        #    logger.debug(f'Using index {self._raw_index}')
-            #self.create_new_index()
-        #else:
-        #    logger.debug(f'Using index {self._raw_index}')
-
-    # depricated
-    def create_new_index(self):
-        res = self._es.indices.create(index=self._raw_index,
-                                      body=self._mapping)
-        if res.get('acknowledged'):
-            logger.debug(f'New mapping created {self._raw_index}')
-        else:
-            logger.error(f'failed to create new mapping {self._mapping} '
-                         f' for index {self._raw_index}')
-
-        #pprint(self._mapping)
-
     def _insert_item(self, index, uid, item):
-        #pprint(item)
         res = self._es.index(index=index,
                              op_type = 'create',
                              id=uid,
@@ -185,8 +159,8 @@ class Elastic:
                               body=body_max_end_time)
         # es uses epoch_millis internally
         timestamp = res_time['aggregations']['max_endTime']['value']
-        # elastic search does not understand
-        # it's own internal time format in queries, therefore using string
+        # elastic search does not understand it's own internal time format in queries,
+        # therefore using string
         str_max_end_time = res_time['aggregations']['max_endTime']['value_as_string']
         if timestamp is None:
             return None, id_set
