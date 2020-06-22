@@ -1,8 +1,13 @@
-# Spot
-![Alt text](spot_logo.png?raw=true "Title")
+![Alt text](images/spot_logo.png?raw=true)
+
+## Overview
 
 **Spot** is **S**park **P**arameter **O**p**t**imizer.
+![Alt text](images/architecture.png?raw=true)
+
 It includes the following key modules:
+
+## Modules
 
 ### Crawler
 Aggregates Spark history data and stores it (to elsaticsearch) 
