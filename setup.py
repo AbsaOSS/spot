@@ -12,11 +12,12 @@ with open('LICENSE.md') as f:
 setup(
     name='spot',
     version='0.0.1',
-    description='Automated setter for Spark job parameters based on regression of previous runs in Spark history',
+    description='A set of tools for monitoring and tuning of Spark app performance'
+                ' based on statistical analysis of run history',
     long_description=readme,
     author='Dzmitry Makatun',
     author_email='dzmitry.makatun@absa.africa',
-    url='https://github.com/AbsaOSS',
+    url='https://github.com/AbsaOSS/spot',
     license=license,
     packages=find_packages(exclude=('tests', 'docs'))
 )
