@@ -28,19 +28,19 @@ from spot.crawler.crawler_args import CrawlerArgs
 
 from spot.enceladus.menas_aggregator import MenasAggregator
 
-
 logger = logging.getLogger(__name__)
 
 
 def _include_all_filter(app_name):
     return True
 
+
 def get_default_classification(name):
     classification = {
         'app': name,
         'type': name,
     }
-    values = re.split('[ ;,.\-\%\_]',name)
+    values = re.split('[ ;,.\-\%\_]', name)
     i = 1
     for val in values:
         classification[i] = val
@@ -72,7 +72,7 @@ class DefaultSaver:
         pprint(app)
 
     def save_agg(self, agg):
-            pprint(agg)
+        pprint(agg)
 
 
 class Crawler:
@@ -146,12 +146,11 @@ class Crawler:
                                      f"in {delta_seconds} seconds "
                                      f"average rate: {per_hour} runs/hour")
 
-
         self._previous_tabu_set = self._new_tabu_set
         logger.info(f'Iteration finished. New apps: {new_counter} '
-                     f'matching apps : {matched_counter}')
+                    f'matching apps : {matched_counter}')
         logger.debug(f'tabu_set: {self._previous_tabu_set}'
-                     f' last date: {self._latest_seen_date }')
+                     f' last date: {self._latest_seen_date}')
 
     # we need to keep track of which applications were already processed.
     # for this reason, we store the latest seen completion date.
@@ -164,16 +163,16 @@ class Crawler:
         for attempt in app.get('attempts'):
             end_time = attempt.get('endTime')
             if end_time is not None:
-                    if (self._latest_seen_date is None) \
-                            or (end_time > self._latest_seen_date):
-                        # new latest app found
-                        self._latest_seen_date = end_time
-                        self._new_tabu_set = {app_id}
-                    elif end_time == self._latest_seen_date:
-                        # another app completed same time
-                        self._new_tabu_set.add(app_id)
-                        logger.debug(f'added app {app_id} '
-                                     f'to tabu list')
+                if (self._latest_seen_date is None) \
+                        or (end_time > self._latest_seen_date):
+                    # new latest app found
+                    self._latest_seen_date = end_time
+                    self._new_tabu_set = {app_id}
+                elif end_time == self._latest_seen_date:
+                    # another app completed same time
+                    self._new_tabu_set.add(app_id)
+                    logger.debug(f'added app {app_id} '
+                                 f'to tabu list')
 
 
 def main():
@@ -182,34 +181,33 @@ def main():
     conf = SpotConfig()
 
     menas_ag = MenasAggregator(conf.menas_api_url,
-                                        conf.menas_username,
-                                        conf.menas_password)
+                               conf.menas_username,
+                               conf.menas_password)
 
     elastic = Elastic(raw_index_name=conf.elastic_raw_index,
-                 agg_index_name=conf.elastic_agg_index)
+                      agg_index_name=conf.elastic_agg_index)
 
-
-    # fing starting end date and list of seen apps
+    # find starting end date and list of seen apps
     last_seen_end_date, seen_ids = elastic.get_latests_time_ids()
     logger.debug(f'Latest stored end date: {last_seen_end_date} seen apps: {seen_ids}')
 
     logger.debug(f'param_end_date: {cmd_args.min_end_date}')
 
     if (cmd_args.min_end_date is not None) \
-            and (
-                (last_seen_end_date is None)
-                or (last_seen_end_date < cmd_args.min_end_date)
-            ):
+        and (
+        (last_seen_end_date is None)
+        or (last_seen_end_date < cmd_args.min_end_date)
+    ):
         last_seen_end_date = cmd_args.min_end_date
         seen_ids = dict()
     logger.debug(f'Will get apps completed after: {last_seen_end_date}')
 
     crawler = Crawler(conf.spark_history_url,
-                 app_specific_obj=menas_ag,
-                 save_obj=elastic,
-                 last_date=last_seen_end_date,
-                 seen_app_ids=seen_ids
-                 )
+                      app_specific_obj=menas_ag,
+                      save_obj=elastic,
+                      last_date=last_seen_end_date,
+                      seen_app_ids=seen_ids
+                      )
 
     sleep_seconds = conf.crawler_sleep_seconds
 

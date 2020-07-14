@@ -84,7 +84,7 @@ class HistoryAggregator:
         self._remove_keys_dict = remove_keys_dict
         self._time_keys_dict = time_keys_dict
         self._dt_format = dt_format
-        self.last_attempt_only=last_attempt_only
+        self.last_attempt_only = last_attempt_only
 
     def _remove_keys(self, doc, doc_type):
         key_list = self._remove_keys_dict.get(doc_type)

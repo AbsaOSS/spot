@@ -18,7 +18,7 @@ import math
 
 logger = logging.getLogger(__name__)
 
-HDFS_block_size = 128 * 1024 * 1024
+HDFS_block_size = (128 * 1024 * 1024)
 
 units_dict = {
     'B': 1,
@@ -28,6 +28,7 @@ units_dict = {
     'T': 1024 ** 4
 }
 
+
 def get_last_attempt(app):
     # we assume the attemts are sorted in reversed chronological order
     return app.get('attempts')[0]
@@ -36,8 +37,8 @@ def get_last_attempt(app):
     last_attempt = None
     for attempt in app.get('attempts'):
         if (last_attempt is None) or \
-                (int(attempt.get('attemptId')) > \
-                 int(last_attempt.get('attemptId'))):
+            (int(attempt.get('attemptId')) > \
+             int(last_attempt.get('attemptId'))):
             last_attempt = attempt
     return last_attempt
 
@@ -49,7 +50,7 @@ def bytes_to_hdfs_block(bytes):
 def parse_to_bytes(size):
     stripped = size.strip().upper()
     value = stripped[:-1]
-    units = stripped[-1:]
+    units = stripped[-1]
     if value.isdigit() and (units in units_dict):
         return int(value) * units_dict[units]
     else:
@@ -58,7 +59,7 @@ def parse_to_bytes(size):
 
 
 def sizeof_fmt(num, suffix='B'):
-    for unit in ['','k','M','G','T']:
+    for unit in ['', 'k', 'M', 'G', 'T']:
         if abs(num) < 1024.0:
             return "%3.1f%s%s" % (num, unit, suffix)
         num /= 1024.0
@@ -72,4 +73,3 @@ def cast_string_to_value(str_val):
         except ValueError:
             return float(str_val)
     return str_val
-

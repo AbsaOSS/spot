@@ -16,7 +16,6 @@ import numpy as np
 
 import logging
 from pprint import pprint
-from functools import reduce
 
 from spot.crawler.elastic import Elastic
 from spot.utils.config import SpotConfig
@@ -39,8 +38,10 @@ executors_flat_map = {
 def bytes_to_gb(bytes):
     return bytes / (1024 * 1024 * 1024)
 
+
 def count_zeroes(series):
     return (series.values == 0).sum()
+
 
 # see https://pandas.pydata.org/pandas-docs/stable/reference/series.html
 default_type_aggregations = {
@@ -57,9 +58,9 @@ default_type_aggregations = {
 
 
 def aggregate_by_col_type(df, type_aggregations=default_type_aggregations):
-    #with pd.option_context('display.max_rows', None, 'display.max_columns', None, 'display.width', 50000):
+    # with pd.option_context('display.max_rows', None, 'display.max_columns', None, 'display.width', 50000):
     #    print(df)
-    #print(df.dtypes)
+    # print(df.dtypes)
     n =len(df.index)
     result = {'elements_count': n}
     if n == 0:
@@ -125,6 +126,7 @@ def flatten_executors(attempt):
     }
     return result
 
+
 def add_custom_stage_metrics(attempt, stage):
     #if stage['status'] == 'COMPLETE':
     if ('completionTime' in stage) and ('firstTaskLaunchedTime' in stage):
@@ -148,6 +150,7 @@ def add_custom_stage_metrics(attempt, stage):
 
     stage['throughput_bytes'] = throughput_bytes
     stage['throughpu_records'] = throughput_records
+
 
 def flatten_stages(attempt):
     stages = attempt.get('stages')
