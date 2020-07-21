@@ -1,0 +1,4 @@
+requests
+elasticsearch
+pandas
+numpy

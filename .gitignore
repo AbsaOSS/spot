@@ -1,0 +1,8 @@
+*.ini
+output/*
+.DS_Store
+*.iml
+*.pyc
+.idea
+venv
+!logging_config.ini
