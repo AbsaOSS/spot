@@ -64,6 +64,14 @@ class SpotConfig(Config):
         return 60
 
     @property
+    def elastic_host(self):
+        return self.get_property('SPOT_ELASTICSEARCH', 'host')
+
+    @property
+    def elastic_port(self):
+        return self.get_property('SPOT_ELASTICSEARCH', 'port')
+
+    @property
     def elastic_raw_index(self):
         return self.get_property('SPOT_ELASTICSEARCH', 'raw_index')
 

@@ -185,7 +185,9 @@ def main():
                                conf.menas_username,
                                conf.menas_password)
 
-    elastic = Elastic(raw_index_name=conf.elastic_raw_index,
+    elastic = Elastic(host=conf.elastic_host,
+                      port=conf.elastic_port,
+                      raw_index_name=conf.elastic_raw_index,
                       agg_index_name=conf.elastic_agg_index)
 
     # find starting end date and list of seen apps
