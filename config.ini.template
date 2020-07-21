@@ -5,6 +5,8 @@ api_base_url = http://localhost:18080/api/v1
 sleep_seconds = 10
 
 [SPOT_ELASTICSEARCH]
+host = localhost
+port = 9200
 raw_index = galactic_raw_1
 agg_index = galactic_agg_1
 
