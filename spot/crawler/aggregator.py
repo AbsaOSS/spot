@@ -102,18 +102,20 @@ class HistoryAggregator:
         return doc
 
     # for sending API requests
-    def _datetime_to_str(self, dt):
+    @staticmethod
+    def _datetime_to_str(dt):
         if dt is not None:
             # Spark hist cannot understand microseconds
             # It needs format 2020-01-15T14:59:33.707GMT
             return dt.isoformat(sep='T', timespec='milliseconds') + 'GMT'
         return None
 
-    def _tuple_list_to_valid_mongo_dict(self, alist):
+    @staticmethod
+    def _tuple_list_to_valid_mongo_dict(alist):
         result = {}
-        for tuple in alist:
-            key = tuple[0].replace('.', '_')
-            value = tuple[1]
+        for atuple in alist:
+            key = atuple[0].replace('.', '_')
+            value = atuple[1]
             if isinstance(value, str):
                 if value.isdigit():
                     value = int(value)

@@ -12,19 +12,18 @@
 # limitations under the License.
 
 import logging
-from datetime import datetime, timedelta
 import time
-from pprint import pprint
 import re
+from datetime import datetime
+from pprint import pprint
+
 from urllib.parse import urlparse
-
 from spot.utils.config import SpotConfig
-import spot.utils.setup_logger
-
 from spot.crawler.flattener import flatten_app
 from spot.crawler.aggregator import HistoryAggregator
 from spot.crawler.elastic import Elastic
 from spot.crawler.crawler_args import CrawlerArgs
+import spot.utils.setup_logger
 
 from spot.enceladus.menas_aggregator import MenasAggregator
 
@@ -68,10 +67,12 @@ class DefaultSaver:
     def __init__(self):
         pass
 
-    def save_app(self, app):
+    @staticmethod
+    def save_app(app):
         pprint(app)
 
-    def save_agg(self, agg):
+    @staticmethod
+    def save_agg(agg):
         pprint(agg)
 
 
@@ -89,9 +90,9 @@ class Crawler:
         self._save_obj = save_obj
         self._app_specific_obj = app_specific_obj
         self._latest_seen_date = last_date
-        # list of apps with the same last date, seen in last iteration
+        # list of apps with the same last date, seen in the previous iteration
         self._previous_tabu_set = seen_app_ids
-        # tabu list being constructed for next iteration
+        # tabu list being constructed for the next iteration
         self._new_tabu_set = set()
 
     def _process_app(self, app):
@@ -106,7 +107,7 @@ class Crawler:
         # save
         self._save_obj.save_app(app)
 
-        # get aggs
+        # get aggregations
         if self._app_specific_obj is not None:
             if self._app_specific_obj.is_matching_app(app):
                 app = self._app_specific_obj.aggregate(app)
@@ -120,7 +121,7 @@ class Crawler:
     def process_new_runs(self):
         processing_start = datetime.now()
         processing_counter = 0
-        logger.info(f'Fetching new apps, completed since {self._latest_seen_date}')
+        logger.info(f"Fetching new apps, completed since {self._latest_seen_date}")
         apps = self._agg.next_app(min_end_date=self._latest_seen_date,
                                   app_status='completed')
         new_counter = 0
@@ -139,7 +140,7 @@ class Crawler:
                     matched_counter += 1
                     self._process_app(app)
                     processing_counter += 1
-                    if (processing_counter % 10 == 0):
+                    if processing_counter % 10 == 0:
                         delta_seconds = (datetime.now() - processing_start).total_seconds()
                         per_hour = processing_counter * 3600 / delta_seconds
                         logger.debug(f"processed {processing_counter} runs "
@@ -147,14 +148,14 @@ class Crawler:
                                      f"average rate: {per_hour} runs/hour")
 
         self._previous_tabu_set = self._new_tabu_set
-        logger.info(f'Iteration finished. New apps: {new_counter} '
-                    f'matching apps : {matched_counter}')
-        logger.debug(f'tabu_set: {self._previous_tabu_set}'
-                     f' last date: {self._latest_seen_date}')
+        logger.info(f"Iteration finished. New apps: {new_counter} "
+                    f"matching apps : {matched_counter}")
+        logger.debug(f"tabu_set: {self._previous_tabu_set}"
+                     f" last date: {self._latest_seen_date}")
 
-    # we need to keep track of which applications were already processed.
-    # for this reason, we store the latest seen completion date.
-    # We use that date in the next iteration when fetching new apps from Spark history
+    # We need to keep track of which applications were already processed.
+    # For this reason, we store the latest seen completion date.
+    # We use that date in the next iteration when fetching new apps from Spark history.
     # Because multiple apps may have completed at the same time,
     # and, also, the last seen application will always appear in the next iteration again,
     # we also store a _tabu_set: a set of app ids, completed at _latest_seen_date

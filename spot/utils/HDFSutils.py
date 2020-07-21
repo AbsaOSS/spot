@@ -13,13 +13,17 @@
 
 import subprocess
 
+
+hdfs_block_size = 134217728
+
+
 class HDFSutils:
 
-    def __init__(self, config):
-        self.hdfs_block_size = config.hdfs_block_size
+    def __init__(self, hdfs_block_size=hdfs_block_size):
+        self.hdfs_block_size = hdfs_block_size
 
     def get_input_size(self, dir_path):
-        print('Checking input dir: {}'.format(dir_path))
+        print(f"Checking input dir: {dir_path}")
         filelist_process = subprocess.run(['hdfs', 'dfs', '-ls', '-C', dir_path],
                                           check=True,
                                           stdout=subprocess.PIPE,
@@ -44,8 +48,7 @@ class HDFSutils:
             size_bytes += file_bytes
             file_blocks = int(stats[5])
             blocks += file_blocks
-            print("{} blocks, {} bytes {}".format(file_blocks, file_bytes, file))
+            print(f"{file_blocks} blocks, {file_bytes} bytes {file}")
 
-        print('Input totals: {} bytes, {} HDFS blocks'.format(size_bytes, blocks))
+        print(f"Input totals: {size_bytes} bytes, {blocks} HDFS blocks")
         return size_bytes, blocks
-

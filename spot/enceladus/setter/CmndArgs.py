@@ -18,11 +18,11 @@ class CmndArgs:
 
     def __init__(self):
         self.parser = argparse.ArgumentParser()
-        self.parser.add_argument("app_type", help="Enceladus app type: [std/cnfrm]", type=str)
-        self.parser.add_argument("dataset_name", help="name of the dataset", type=str)
-        self.parser.add_argument("dataset_version", help="version of the dataset", type=int)
-        self.parser.add_argument("info_date", help="information date yyyy-mm-dd", type=str)
-        self.parser.add_argument("info_version", help="information version", type=int)
+        self.parser.add_argument('app_type', help='Enceladus app type: [std/cnfrm]', type=str)
+        self.parser.add_argument('dataset_name', help='name of the dataset', type=str)
+        self.parser.add_argument('dataset_version', help='version of the dataset', type=int)
+        self.parser.add_argument('info_date', help='information date yyyy-mm-dd', type=str)
+        self.parser.add_argument('info_version', help='information version', type=int)
 
     def parse_args(self, argv=None):
         return self.parser.parse_args(argv)

@@ -12,7 +12,7 @@
 # limitations under the License.
 
 from spot.enceladus import menas_api
-from spot.utils import HDFSutils
+from spot.utils import HDFSutils, config
 from spot.enceladus.setter import CmndArgs
 
 
@@ -23,15 +23,15 @@ def get_input_path(dir, info_date, info_version):
 def main():
     print("Starting Optimizer")
     cmd_args = CmndArgs.CmndArgs().parse_args()
-    config = config.ConfigProvider()
-    menas = menas_api.MenasApi(config)
+    conf = config.SpotConfig()
+    menas = menas_api.MenasApi(conf.menas_api_url, conf.menas_username, conf.menas_password)
     dataset_doc = menas.get_dataset(cmd_args.dataset_name, cmd_args.dataset_version)
     print(dataset_doc)
     if cmd_args.app_type == 'std':
-        inputPath = get_input_path(dataset_doc['hdfsPath'], cmd_args.info_date, cmd_args.info_version)
-        print(inputPath)
-        hdfsUtil = HDFSutils.HDFSutils(config)
-        bytes, blocks = hdfsUtil.get_input_size(inputPath)
+        input_path = get_input_path(dataset_doc['hdfsPath'], cmd_args.info_date, cmd_args.info_version)
+        print(input_path)
+        hdfs_util = HDFSutils.HDFSutils()
+        input_bytes, input_blocks = hdfs_util.get_input_size(input_path)
     else:
         print('unsupported app type: {}'.format(cmd_args.app_type))
 

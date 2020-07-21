@@ -18,78 +18,15 @@ import spot.enceladus.classification as clsf
 from spot.crawler.commons import cast_string_to_value
 import spot.utils.setup_logger
 
-logger = logging.getLogger(__name__)
 
-elastic_mappings = {
-    "mappings": {
-        "dynamic_templates": [
-            {
-                "app-run_checkpoints": {
-                    "path_match": "*.controlMeasure.checkpoints",
-                    "mapping": {
-                        "type": "nested"
-                    }
-                }
-            },
-            {
-                "app-dataset_conformance": {
-                    "path_match": "*.dataset.conformance",
-                    "mapping": {
-                        "type": "nested"
-                    }
-                }
-            },
-            {
-                "app-dataset_changes": {
-                    "path_match": "*.dataset.createdMessage.changes",
-                    "mapping": {
-                        "type": "nested"
-                    }
-                }
-            },
-            {
-                "app-dataset_changes_filed": {
-                    "path_match": "*.dataset.createdMessage.changes.field",
-                    "mapping": {
-                        "type": "keyword",
-                        "null_value": "NULL"
-                    }
-                }
-            },
-            {
-                "app-schema_fields": {
-                    "path_match":  "*.schema.fields",
-                    "mapping": {
-                        "type": "nested"
-                    }
-                }
-            },
-            {
-               "app-schema_fields_metadata": {
-                   "path_match": "*.schema.fields.metadata",
-                   "mapping": {
-                       "type": "nested"
-                   }
-               }
-            },
-            {
-                "app-specific_run": {
-                    "path_match": "*.app_specific_data.run",
-                    "mapping": {
-                        "type": "object"
-                    }
-                }
-            }
-        ]
-    }
-}
+logger = logging.getLogger(__name__)
 
 
 def _match_values(left, right):
     if left == right:
         return True
     else:
-        logger.debug(f'value mismatch {left} != {right}')
+        logger.debug(f"value mismatch {left} != {right}")
         return False
 
 
@@ -116,8 +53,8 @@ def _match_run(run, app_id, clfsion):
     # and _match_values(info_date, clfsion.get('info_date')) \
 
     if not match:
-        logger.warning(f'run uniqueId:{run.get("uniqueId")} '
-                       f'does not match Spark App {app_id}')
+        logger.warning(f"run uniqueId:{run.get('uniqueId')} "
+                       f"does not match Spark App {app_id}")
 
     return match
 
@@ -125,11 +62,11 @@ def _match_run(run, app_id, clfsion):
 class MenasAggregator:
 
     def __init__(self, api_base_url, username, password):
-        logger.debug(f'starting menas aggregator')
+        logger.debug('starting menas aggregator')
         self.menas_api = MenasApi(api_base_url, username, password)
-        self.elastic_mappings = elastic_mappings
 
-    def cast_run_data(self, run):
+    @staticmethod
+    def cast_run_data(run):
         additional_info = run['controlMeasure']['metadata']['additionalInfo']
         for key, value in additional_info.items():
             additional_info[key] = cast_string_to_value(value)
@@ -138,7 +75,7 @@ class MenasAggregator:
     def get_runs(self, app_id, clfsion):
         runs = self.menas_api.get_runs_by_spark_id(app_id)
         if not runs:
-            logger.warning(f'Run document for {app_id} not found')
+            logger.warning(f"Run document for {app_id} not found")
             return []
         for run in runs:
             if not _match_run(run, app_id, clfsion):
@@ -146,13 +83,14 @@ class MenasAggregator:
             else:
                 run = self.cast_run_data(run)
         if len(runs) > 1:
-            logger.warning(f'Multiple run documents exist for {app_id}')
+            logger.warning(f"Multiple run documents exist for {app_id}")
         elif len(runs) == 0:
-            logger.warning(f'No matching run documents exist for {app_id}')
+            logger.warning(f"No matching run documents exist for {app_id}")
             return []
         return runs
 
-    def is_matching_app(self, app):
+    @staticmethod
+    def is_matching_app(app):
         app_name = app.get('name')
         return clsf.is_enceladus_app(app_name)
 
@@ -171,7 +109,7 @@ class MenasAggregator:
         if len(runs) != len(attempts):
             logger.error(f'{app_id} {app_name} runs and attempts mismatch')
 
-        # we assume that Enc runs and spark attempts are sorted in opposite orders!
+        # we assume that Enceladus runs and spark attempts are sorted in opposite orders!
         for i in range(len(attempts)):
             run = None
             if i < len(runs):
@@ -179,8 +117,7 @@ class MenasAggregator:
             attempts[i]['app_specific_data'] = {'enceladus_run': run}
 
         # get dataset
-        #dataset = self.menas_api.get_dataset(clfsion.get('dataset'),
-        #                                             clfsion.get('dataset_version'))
+        #dataset = self.menas_api.get_dataset(clfsion.get('dataset'), clfsion.get('dataset_version'))
         #data['dataset'] = dataset
 
         # get schema
@@ -190,12 +127,11 @@ class MenasAggregator:
         #data['schema'] = schema
         return app
 
-    def aggregate(self, app):
-        logger.debug(f'{app["name"]} {app["id"]}')
+    @staticmethod
+    def aggregate(app):
+        logger.debug(f"{app['name']} {app['id']}")
         for attempt in app.get('attempts'):
-            run = attempt.get('app_specific_data', None) \
-                .get('enceladus_run', None)
+            run = attempt.get('app_specific_data', None).get('enceladus_run', None)
             if run is not None:
-                run.get('controlMeasure', None) \
-                .pop('checkpoints', None) # remove checkpoints array from run
+                run.get('controlMeasure', None).pop('checkpoints', None)  # remove checkpoints array from run
         return app

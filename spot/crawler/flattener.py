@@ -19,24 +19,13 @@ from pprint import pprint
 
 from spot.crawler.elastic import Elastic
 from spot.utils.config import SpotConfig
-from spot.crawler.commons import get_last_attempt, bytes_to_hdfs_block, parse_to_bytes
+from spot.crawler.commons import get_last_attempt, bytes_to_hdfs_block, parse_to_bytes, bytes_to_gb
 
 import spot.utils.setup_logger
 
 logger = logging.getLogger(__name__)
 
 DF = pd.DataFrame
-
-# Deprecated
-executors_flat_map = {
-    'totalTasks': [DF.sum, DF.max],
-    'totalDuration': [DF.min],
-    'memoryMetrics.totalOnHeapStorageMemory': [DF.sum]
-}
-
-
-def bytes_to_gb(bytes):
-    return bytes / (1024 * 1024 * 1024)
 
 
 def count_zeroes(series):
@@ -46,22 +35,14 @@ def count_zeroes(series):
 # see https://pandas.pydata.org/pandas-docs/stable/reference/series.html
 default_type_aggregations = {
     np.number: [DF.min, DF.max, DF.sum, DF.mean, DF.nunique, count_zeroes],
-    #np.object: [DF.count]
     np.object: [DF.min, DF.max, pd.Series.nunique],
     np.datetime64: [min, max],
-    # mode
-    # value_counts
-    #ravel -> array
-    # Series.str.cat
     bool: [DF.any, DF.all, DF.sum]
 }
 
 
 def aggregate_by_col_type(df, type_aggregations=default_type_aggregations):
-    # with pd.option_context('display.max_rows', None, 'display.max_columns', None, 'display.width', 50000):
-    #    print(df)
-    # print(df.dtypes)
-    n =len(df.index)
+    n = len(df.index)
     result = {'elements_count': n}
     if n == 0:
         return result
@@ -70,29 +51,13 @@ def aggregate_by_col_type(df, type_aggregations=default_type_aggregations):
         if len(subset.columns) ==0: # if no columns of selected type
             continue
         res1 = subset.agg(aggs).fillna(-1)
-        #with pd.option_context('display.max_rows', None, 'display.max_columns', None, 'display.width', 50000):
-            #print(res1)
         for column_name, elements in res1.items():
             if column_name not in result.keys():
                 result[column_name] = {}
             for i, v in elements.items():
-                if t is bool: # elsaticse
+                if t is bool:
                     v = bool(v)
                 result[column_name][i] = v
-    #pprint(result)
-    return result
-
-
-# Deprecated
-def aggregate_by_col_name(df, flat_map):
-    result = {'elements_count': len(df.index)}
-    for column_name in flat_map.keys():
-        column_aggs = {}
-        for func in flat_map[column_name]:
-            func_name = func.__name__
-            value = func(df[column_name])
-            column_aggs[func_name] = value
-        result[column_name] = column_aggs
     return result
 
 
@@ -128,7 +93,6 @@ def flatten_executors(attempt):
 
 
 def add_custom_stage_metrics(attempt, stage):
-    #if stage['status'] == 'COMPLETE':
     if ('completionTime' in stage) and ('firstTaskLaunchedTime' in stage):
         scheduling_overhead_ms = (stage['firstTaskLaunchedTime'] - stage['submissionTime']).total_seconds() * 1000
         duration_ms = (stage['completionTime'] - stage['firstTaskLaunchedTime']).total_seconds() * 1000
@@ -142,14 +106,14 @@ def add_custom_stage_metrics(attempt, stage):
         duration_ms = 0
         throughput_bytes = -1
         throughput_records = -1
-    CPUtime_ms = stage['executorCpuTime'] / 1000000 # nanoseconds to seconds
+    CPUtime_ms = stage['executorCpuTime'] / 1000000  # nanoseconds to milliseconds
 
     stage['x_scheduling_overhead'] = scheduling_overhead_ms
     stage['x_duration'] = duration_ms
     stage['x_executorCpuTime_ms'] = CPUtime_ms
 
     stage['throughput_bytes'] = throughput_bytes
-    stage['throughpu_records'] = throughput_records
+    stage['throughput_records'] = throughput_records
 
 
 def flatten_stages(attempt):
@@ -158,9 +122,6 @@ def flatten_stages(attempt):
         add_custom_stage_metrics(attempt, stage)
 
     df = pd.io.json.json_normalize(stages)
-    #with pd.option_context('display.max_rows', None, 'display.max_columns', None, 'display.width', 50000):
-    #    print(df)
-    #df = df.drop(columns=['rddIds', 'accumulatorUpdates'])
     aggregations = aggregate_by_col_type(df)
     return aggregations
 
@@ -171,7 +132,7 @@ def flatten_app(app):
     last_attempt_id = last_attempt.get('attemptId')
     for attempt in attempts:
         res = app.copy()
-        res.pop('attempts', None) #remove attempts array from result
+        res.pop('attempts', None)  # remove attempts array from result
         attempt_id = attempt.get('attemptId')
         if (attempt_id is None) or (attempt_id == last_attempt_id):
             res['isFinalAttempt'] = True
@@ -199,7 +160,7 @@ def get_attempt_aggregations(attempt):
 
 def calculate_parallelism(stages):
     intervals_overlap = False
-    sum = 0
+    total = 0
 
     # filter out stages with missing values:
     filtered_stages = []
@@ -207,19 +168,16 @@ def calculate_parallelism(stages):
         if ('firstTaskLaunchedTime' in stage) and ('completionTime' in stage):
             filtered_stages.append(stage)
 
-    # stages are sorted in reverse submission order by Spark History
-    # we assume the overhead between submittion and firstTaskLaunchedTime
-    # is tiny
-    # see https://www.geeksforgeeks.org/merging-intervals/ for algorithm
+    # stages are sorted in reverse submission order by Spark History (not guaranteed)
+    # we assume the overhead between submition and firstTaskLaunchedTime is tiny
+    # see https://www.geeksforgeeks.org/merging-intervals/ for the algorithm
 
-    # sort stages explicitly for experiment
-    stages_sorted = sorted(filtered_stages, key = lambda i: i['firstTaskLaunchedTime'])
+    # sort stages explicitly
+    stages_sorted = sorted(filtered_stages, key=lambda i: i['firstTaskLaunchedTime'])
 
     cursor_first = None
     cursor_completion = None
     for stage in stages_sorted:
-        #if stage['status'] != 'COMPLETE': # already filtered
-        #    continue
         stage_first = stage['firstTaskLaunchedTime']
         stage_completion = stage['completionTime']
         if cursor_first is None :
@@ -227,7 +185,7 @@ def calculate_parallelism(stages):
             cursor_first = stage_first
             cursor_completion = stage_completion
             continue
-        if (stage_first < cursor_completion):
+        if stage_first < cursor_completion:
             intervals_overlap = True
             cursor_first = min([cursor_first, stage_first])
             cursor_completion = max([cursor_completion, stage_completion])
@@ -235,16 +193,16 @@ def calculate_parallelism(stages):
         else:
             # intervals don't overlap
             # add current cursor
-            sum += (cursor_completion - cursor_first).total_seconds() * 1000
+            total += (cursor_completion - cursor_first).total_seconds() * 1000
             # update cursor
             cursor_first = stage_first
             cursor_completion = stage_completion
 
     # add the last interval
     if cursor_first is not None:
-        sum += (cursor_completion - cursor_first).total_seconds() * 1000
+        total += (cursor_completion - cursor_first).total_seconds() * 1000
 
-    return sum, intervals_overlap
+    return total, intervals_overlap
 
 
 def calculate_summary(attempt, aggs):
@@ -264,14 +222,13 @@ def calculate_summary(attempt, aggs):
         last_stage_finish = aggs['stages']['completionTime']['max']
         stages_interval = (last_stage_finish - first_stage_start).total_seconds() * 1000
 
-        #parallel_part = min([stages_sum, stages_interval])
         parallel_part, stages_in_parallel = calculate_parallelism(attempt.get('stages', []))
         duration = attempt['duration']
 
         # duration of sequential part
         seq_part = duration - parallel_part
         if seq_part < 0:
-            logger.warning(f'calculated seq_part < 0')
+            logger.warning(f"calculated seq_part < 0")
 
         # estimated time on 1 core
         est_seq_time = seq_part + parallel_work
@@ -281,7 +238,8 @@ def calculate_summary(attempt, aggs):
 
         stages_max_input_blocks = bytes_to_hdfs_block(aggs['stages']['inputBytes']['max'])
         executors_total_input_blocks = bytes_to_hdfs_block(aggs['allexecutors']['executors']['totalInputBytes']['sum'])
-        unused_storage_memory = aggs['allexecutors']['executors']['maxMemory']['sum'] - aggs['stages']['inputBytes']['max']
+        unused_storage_memory = aggs['allexecutors']['executors']['maxMemory']['sum'] \
+            - aggs['stages']['inputBytes']['max']
 
         summary = {
 
@@ -298,7 +256,7 @@ def calculate_summary(attempt, aggs):
             'unused_storage_memory': unused_storage_memory
         }
         if duration != 0:
-            speedup = (est_seq_time) / duration
+            speedup = est_seq_time / duration
             summary['estimated_speedup'] = speedup
 
             parallel_fraction = parallel_part / duration
@@ -325,27 +283,8 @@ def calculate_summary(attempt, aggs):
             summary['driver_memory_bytes'] = parse_to_bytes(props['spark_driver_memory'])
 
         if aggs['allexecutors']['executors']['maxMemory']['sum'] != 0:
-            storage_memory_usage = aggs['stages']['inputBytes']['max'] / aggs['allexecutors']['executors']['maxMemory']['sum']
+            storage_memory_usage = aggs['stages']['inputBytes']['max'] \
+                                   / aggs['allexecutors']['executors']['maxMemory']['sum']
             summary['storage_memory_usage'] = storage_memory_usage
 
-
     return summary
-
-
-def main():
-    logger.info(f'Starting flattener experiments')
-    conf = SpotConfig()
-    es = Elastic(conf.elastic_raw_index)
-    sample_run = es.get_by_id('application_1581588560132_9984')
-    #executors = sample_run['attempts'][0]['allexecutors']
-    #executors_flat = flatten_executors(executors)
-    #pprint(executors_flat)
-    #stages = sample_run['attempts'][0]['stages']
-    #stages_flat = flatten_stages(stages)
-
-    for attempt in flatten_app(sample_run):
-        pprint(attempt)
-
-
-if __name__ == '__main__':
-    main()

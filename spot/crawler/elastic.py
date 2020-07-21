@@ -12,86 +12,16 @@
 # limitations under the License.
 
 import logging
-from datetime import datetime
-from collections import deque
 import elasticsearch
-from elasticsearch.helpers import bulk
-from pprint import pprint
-import json
-from bson import json_util
 import pandas as pd
-
+from datetime import datetime
 
 from spot.crawler.commons import sizeof_fmt
-import spot.utils.setup_logger
 from spot.utils.config import SpotConfig
+import spot.utils.setup_logger
 
 logger = logging.getLogger(__name__)
-
 REQUEST_TIMEOUT = 30
-
-dynamic_mapping = {
-    "mappings": {
-        "dynamic_templates": [
-            {
-                "attempts": {
-                    "match": "attempts",
-                    "mapping": {
-                        "type": "nested"
-                    }
-                }
-            },
-            {
-                "allexecutors": {
-                    "match": "allexecutors",
-                    "mapping": {
-                        "type": "nested"
-                    }
-                }
-            },
-            {
-                "stages": {
-                    "match": "stages",
-                    "mapping": {
-                        "type": "nested"
-                    }
-                }
-            },
-            {
-                "memoryMetrics": {
-                    "match": "memoryMetrics",
-                    "mapping": {
-                        "type": "nested"
-                    }
-                }
-            },
-            {
-                "environment": {
-                    "match": "environment",
-                    "mapping": {
-                        "type": "object"
-                    }
-                }
-            },
-            {
-                "runtime": {
-                    "match": "runtime",
-                    "mapping": {
-                        "type": "object"
-                    }
-                }
-            },
-            {
-                "sparkProperties": {
-                    "match": "sparkProperties",
-                    "mapping": {
-                        "type": "object"
-                    }
-                }
-            },
-        ]
-    }
-}
 
 
 class Elastic:
@@ -100,8 +30,7 @@ class Elastic:
                  raw_index_name='raw_default',
                  agg_index_name='agg_default',
                  host='localhost',
-                 port=9200,
-                 #app_spec_mapping=None #remove
+                 port=9200
                  ):
         connection = {
             'host': host,
@@ -205,8 +134,8 @@ class Elastic:
         res = self._es.indices.stats(index=index)
         primaries = res['indices'][index]['primaries']
         docs_count = primaries['docs']['count']
-        bytes = primaries['store']['size_in_bytes']
-        return index, docs_count, bytes
+        size_bytes = primaries['store']['size_in_bytes']
+        return index, docs_count, size_bytes
 
     def get_top_tags(self, min_count = 8):
         body = {

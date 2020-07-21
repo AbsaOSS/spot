@@ -20,19 +20,20 @@ import spot.utils.setup_logger
 
 logger = logging.getLogger(__name__)
 
+
 class Config(object):
     _default_config_path = '../../config.ini'
 
     def __init__(self, config_path=_default_config_path):
-        logger.debug('Reading config.ini')
+        logger.debug(f"Reading configuration {config_path}")
         config = configparser.ConfigParser()
         config.read(config_path)
         self._config = config
 
     def get_property(self, *property_path):
         prop = self._config.get(*property_path, fallback=None)
-        if prop is None: # we don't want KeyError
-            logger.error(f'property {property_path} not found')
+        if prop is None:  # we don't want KeyError
+            logger.error(f"property {property_path} not found")
             return None  # just return None if not found
         return prop
 
@@ -69,11 +70,3 @@ class SpotConfig(Config):
     @property
     def elastic_agg_index(self):
         return self.get_property('SPOT_ELASTICSEARCH', 'agg_index')
-
-
-
-
-
-
-
-

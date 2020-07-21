@@ -11,10 +11,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import math
 import logging
 
 import spot.utils.setup_logger
-import math
+
 
 logger = logging.getLogger(__name__)
 
@@ -30,31 +31,22 @@ units_dict = {
 
 
 def get_last_attempt(app):
-    # we assume the attemts are sorted in reversed chronological order
+    # we assume the attempts are sorted in reversed chronological order
     return app.get('attempts')[0]
 
-    # depricated
-    last_attempt = None
-    for attempt in app.get('attempts'):
-        if (last_attempt is None) or \
-            (int(attempt.get('attemptId')) > \
-             int(last_attempt.get('attemptId'))):
-            last_attempt = attempt
-    return last_attempt
+
+def bytes_to_hdfs_block(size_bytes):
+    return math.ceil(size_bytes / HDFS_block_size)
 
 
-def bytes_to_hdfs_block(bytes):
-    return math.ceil(bytes / HDFS_block_size)
-
-
-def parse_to_bytes(size):
-    stripped = size.strip().upper()
+def parse_to_bytes(size_str):
+    stripped = size_str.strip().upper()
     value = stripped[:-1]
     units = stripped[-1]
     if value.isdigit() and (units in units_dict):
         return int(value) * units_dict[units]
     else:
-        logger.warning(f'Failed to parse string {size} to bytes')
+        logger.warning(f'Failed to parse string {size_str} to bytes')
         return None
 
 
@@ -73,3 +65,7 @@ def cast_string_to_value(str_val):
         except ValueError:
             return float(str_val)
     return str_val
+
+
+def bytes_to_gb(size_bytes):
+    return size_bytes / (1024 * 1024 * 1024)

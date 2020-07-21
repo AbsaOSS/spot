@@ -14,11 +14,10 @@
 import logging
 import requests
 
-from requests.packages.urllib3.util.retry import Retry
-
 import spot.utils.setup_logger
 
 logger = logging.getLogger(__name__)
+
 
 class SparkHistory:
     def __init__(self, spark_history_base_url):
@@ -26,11 +25,9 @@ class SparkHistory:
         self._session = None
 
     def _init_session(self):
-        logger.debug('satring new Spark History session')
+        logger.debug('starting new Spark History session')
         self._session = requests.Session()
-        retries = Retry(total=10,
-                        backoff_factor=1,
-                        status_forcelist=[500])
+        retries = requests.packages.urllib3.util.retry.Retry(total=10, backoff_factor=1, status_forcelist=[500])
         adapter = requests.adapters.HTTPAdapter(max_retries=retries)
         self._session.mount(self._spark_history_base_url, adapter)
 
@@ -39,14 +36,14 @@ class SparkHistory:
         if attempt is None:
             return app_id
         else:
-            return f'{app_id}/{attempt}'
+            return f"{app_id}/{attempt}"
 
     def _get_data(self, path, params={}):
         if self._session is None:
             self._init_session()
 
-        url = f'{self._spark_history_base_url}/{path}'
-        logger.debug(f'sending request to {url} with params {params}')
+        url = f"{self._spark_history_base_url}/{path}"
+        logger.debug(f"sending request to {url} with params {params}")
         response = self._session.get(url, params=params)
 
         if response.status_code != requests.codes.ok:
@@ -63,7 +60,7 @@ class SparkHistory:
                          ):
         logger.info(f"Fetching apps from: {self._spark_history_base_url}")
         app_path = 'applications'
-        params={
+        params = {
             'status': status,
             'minDate': min_date,
             'maxDate': max_date,
@@ -76,24 +73,22 @@ class SparkHistory:
 
     def get_environment(self, app_id, attempt):
         attempt_id = self._merge_attempt_id(app_id, attempt)
-        logger.debug(f'getting environment for {attempt_id}')
-        path = f'applications/{attempt_id}/environment'
+        logger.debug(f"getting environment for {attempt_id}")
+        path = f"applications/{attempt_id}/environment"
         data = self._get_data(path)
         return data
 
     def get_allexecutors(self, app_id, attempt):
         attempt_id = self._merge_attempt_id(app_id, attempt)
         logger.debug(f'getting all executors for {attempt_id}')
-        path = f'applications/{attempt_id}/allexecutors'
+        path = f"applications/{attempt_id}/allexecutors"
         data = self._get_data(path)
         return data
 
     def get_stages(self, app_id, attempt, status=None):
         attempt_id = self._merge_attempt_id(app_id, attempt)
-        logger.debug(f'getting stages for {attempt_id}')
-        path = f'applications/{attempt_id}/stages'
+        logger.debug(f"getting stages for {attempt_id}")
+        path = f"applications/{attempt_id}/stages"
         params = {'status': status}
         data = self._get_data(path, params)
         return data
-
-

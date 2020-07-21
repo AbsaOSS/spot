@@ -26,7 +26,5 @@ class CrawlerArgs:
                                  help=f"Retrieve apps completed after {datetime_format}",
                                  type=lambda s: datetime.datetime.strptime(s, datetime_format))
 
-
     def parse_args(self, argv=None):
         return self.parser.parse_args(argv)
-    

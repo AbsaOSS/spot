@@ -11,16 +11,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 def _is_standardization(name):
     spl = name.split(' ')
-    return name.startswith('Standardisation ') \
-           and len(spl) == 6
+    return name.startswith('Standardisation ') and len(spl) == 6
 
 
 def _is_conformance(name):
     spl = name.split(' ')
-    return name.startswith('Dynamic Conformance ') \
-           and len(spl) == 7
+    return name.startswith('Dynamic Conformance ') and len(spl) == 7
 
 
 def is_enceladus_app(name):
@@ -30,15 +29,15 @@ def is_enceladus_app(name):
 def get_classification(name):
     values = name.split(' ')
     if _is_standardization(name):
-        type = 'standardization'
+        app_type = 'standardization'
     if _is_conformance(name):
-        type = 'conformance'
+        app_type = 'conformance'
         values.pop(0)
-    if type is not None:
+    if app_type is not None:
         classification = {
             'project': 'enceladus',
             'app': 'enceladus',
-            'type': type,
+            'type': app_type,
             'app_version': values[1],
             'dataset': values[2],
             'dataset_version': int(values[3]) if values[3].isdigit() else values[3],
