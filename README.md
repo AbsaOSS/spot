@@ -8,6 +8,7 @@
     - [Regression](#regression)
     - [Setter](#setter)
     - [Enceladus](#enceladus)
+- [Deployment](#deployment)
 <!-- tocstop -->
 
 ## What is Spot
@@ -44,3 +45,27 @@ calculated values are added, e.g. total CPU allocation, estimated efficiency and
 ### Enceladus
 The Enceladus module provides integration capabilities for SPOT usage with [Enceladus](https://github.com/AbsaOSS/enceladus)
 
+## Deployment
+- Install Python 3 (recommended 3.7 and later)
+- Install required modules (see requirements.txt)
+- Clone code to a location of your choice
+- Add project root directory to PYTHONPATH e.g. `export PYTHONPATH=/path/to/spot`
+- Check access to external services:
+    - Elasticsearch and Kibana
+    - Spark History (2.4 and later recommended)
+    - (Optional) [Menas](https://github.com/AbsaOSS/enceladus) (2.1.0 and later recommended) Requires username and password
+- Create configuration: copy config.ini.template to config.ini and set parameters from the above step
+    - For new deployment set raw_index and agg_index to new index names which do not exist in elasticsearch
+- Configure logging in logging_confg.ini (see [Logging](https://docs.python.org/2/library/logging.config.html#configuration-file-format)) 
+
+
+### Running Crawler
+`cd spot/crawler`
+
+`python3 crawler.py [options]`
+
+|    Option     |      Default     |                    Description                 |
+|---------------|------------------|------------------------------------------------|
+|--min_end_date | None             |Optional. Minimal completion date of the Spark job in the format YYYY-MM-DDThh:mm:ss. Crawler processes Spark jobs completed after the latest of a) the max completion date among already processed jobs (stored in the database) b) this option. In the first run, when there are niether processed jobs in the database nor this option is specified, the crawler starts with the earliest completed job in Spark History.|
+
+This will start the main loop of the crawler. It gets new completed apps, processes and stores them in the database. When all the new apps are processed the crawler sleeps `sleep_seconds` (see config.ini) before the next iteration. To exit the loop, kill the process.
