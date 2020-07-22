@@ -3,6 +3,7 @@
 **S**park[*](https://github.com/apache/spark) **P**arameter **O**p**T**imizer.
 <!-- toc -->
 - [What is Spot?](#what-is-spot)
+- [How Spot is used to tune Spark apps?](#how-spot-is-used-to-tune-Spark-apps?)
 - [Modules](#modules)
     - [Crawler](#crawler)
     - [Regression](#regression)
@@ -16,9 +17,33 @@
 
 ![Spot architecture](https://user-images.githubusercontent.com/8556576/87431759-5e64c100-c5e7-11ea-84bb-ae1e2403c84a.png)
 
-It includes the following key modules:
+## How Spot is used to tune Spark apps? 
+In this section we provide examples of plots and analysis which demonstrate how Spot is applied to tune preformance of Spark jobs.
 
-
+#### Example 1: Dynamic VS Fixed resource allocation 
+![Dynamic Resource Allocation](https://user-images.githubusercontent.com/8556576/88194526-3a385e00-cc3f-11ea-817b-b72254f16cf9.png)
+The plot above shows the dependence of time of Enceladus runs for a particular dataset on the input size and number of allocated CPU cores. 
+The left sub-plot corresponds to fixed resource allocation which was the default. Due to great variation of input size 
+in data pipelines, fixed allocation often leads to either: 1) extended time in case of under-allocation or 2) wasted 
+resources in case of over-allocation. The right sub-plot demonstrates how 
+[Dynamic Resource Allocation](http://spark.apache.org/docs/latest/job-scheduling.html#dynamic-resource-allocation), 
+set as a new default, solves this issue. 
+Here, the number of cores is adjusted to the input size, and as a result the job time becomes more stable and efficiency
+ improves.
+ 
+ #### Example 2: Small files issue
+ ![Small files issue](https://user-images.githubusercontent.com/8556576/88194561-41f80280-cc3f-11ea-97ed-75657585392f.png)
+ When shuffle operations are present, Spark creates 200 partitions by default regardless of the data size. Excessive 
+ fragmentation of small files compromises HDFS performance.  The presented plot, produced by Spot, shows how the number 
+ of output partitions depends on input size with old/new configurations. As it can be seen in the plot, 
+ [Adaptive Execution](https://databricks.com/blog/2020/05/29/adaptive-query-execution-speeding-up-spark-sql-at-runtime.html)
+  creates a reasonable number of partitions proportional to data size. Based on such analysis, enabled by Spot, 
+  it was set as a new default for Enceladus.
+  
+#### Example 3: Parallelism
+ ![Parallelism per job](https://user-images.githubusercontent.com/8556576/88194763-7a97dc00-cc3f-11ea-8530-48a66dde8160.png)
+ 
+ 
 ## Modules
 
 ### Crawler
