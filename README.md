@@ -18,9 +18,28 @@
 ![Spot architecture](https://user-images.githubusercontent.com/8556576/87431759-5e64c100-c5e7-11ea-84bb-ae1e2403c84a.png)
 
 ## How Spot is used to tune Spark apps? 
-In this section we provide examples of plots and analysis which demonstrate how Spot is applied to tune preformance of Spark jobs.
+In this section we provide examples of plots and analysis which demonstrate how Spot is applied to monitor and tune preformance of Spark jobs.
 
-#### Example 1: Dynamic VS Fixed resource allocation 
+#### Example: Cluster usage over time
+![Cluster usage](https://user-images.githubusercontent.com/8556576/88381248-5efb1580-cda6-11ea-8eb1-80524b4f167a.png)
+This plot shows how many CPU cores were allocated for Spark apps of each user over time. Similar plots can be made for memory used by executors,
+amount of shuffled data and so on. Also, the series can be split by application name or other metadata. Kibana time series, used in this example, does not account for duration of allocation, but this is planned to be addressed using custom plots in future. 
+
+#### Example: Characteristics of a particular Spark application
+When an application is running repeatedly, statistics of runs can be used to focuse code optimization towards most 
+critical and common cases. Also, such statistics can be used to compare app versions.
+The next two plots show histograms of run duration in milliseconds (attempt.duration) and size of input data in bytes 
+(attempts.aggs.stages.inputBytes.max). Filters on max values are applyed in both plots in order to keep a reasonable scale. 
+![Time histogram](https://user-images.githubusercontent.com/8556576/88382148-23614b00-cda8-11ea-9965-654b1b0bf691.png)
+![Size histogram](https://user-images.githubusercontent.com/8556576/88382162-2e1be000-cda8-11ea-93e3-d9cc47a27f15.png)
+The next figure shows statistics of configurations used in different runs of the same app. 
+![Configurations](https://user-images.githubusercontent.com/8556576/88383534-01b59300-cdab-11ea-8080-f8fc6c454a9d.png)
+When too many executors are allocated to a relatively small job, or partitioning is not working properly 
+(e.g. unsplitable data formats), some of the executors remain idle for the entire run. In such case the resource 
+allocation can be  safely decreased in order to reduce the cluster load. The next histogram illustrates such case.
+![Zero tasks](https://user-images.githubusercontent.com/8556576/88386609-0aa96300-cdb1-11ea-9cf5-be970e53eec6.png)
+
+#### Example: Dynamic VS Fixed resource allocation 
 ![Dynamic Resource Allocation](https://user-images.githubusercontent.com/8556576/88194526-3a385e00-cc3f-11ea-817b-b72254f16cf9.png)
 The plot above shows the dependence of time of Enceladus runs for a particular dataset on the input size and number of allocated CPU cores. 
 The left sub-plot corresponds to fixed resource allocation which was the default. Due to great variation of input size 
@@ -31,7 +50,7 @@ set as a new default, solves this issue.
 Here, the number of cores is adjusted to the input size, and as a result the job time becomes more stable and efficiency
  improves.
  
- #### Example 2: Small files issue
+ #### Example: Small files issue
  ![Small files issue](https://user-images.githubusercontent.com/8556576/88194561-41f80280-cc3f-11ea-97ed-75657585392f.png)
  When shuffle operations are present, Spark creates 200 partitions by default regardless of the data size. Excessive 
  fragmentation of small files compromises HDFS performance.  The presented plot, produced by Spot, shows how the number 
@@ -40,8 +59,8 @@ Here, the number of cores is adjusted to the input size, and as a result the job
   creates a reasonable number of partitions proportional to data size. Based on such analysis, enabled by Spot, 
   it was set as a new default for Enceladus.
   
-#### Example 3: Parallelism
- ![Parallelism per job](https://user-images.githubusercontent.com/8556576/88194763-7a97dc00-cc3f-11ea-8530-48a66dde8160.png)
+#### Example: Parallelism
+ ![Parallelism per job](https://user-images.githubusercontent.com/8556576/88376482-ca8cb500-cd9d-11ea-9692-78b659f8b2f9.png)
  
  
 ## Modules
