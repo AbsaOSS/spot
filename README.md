@@ -51,17 +51,47 @@ Here, the number of cores is adjusted to the input size, and as a result the job
  improves.
  
  #### Example: Small files issue
- ![Small files issue](https://user-images.githubusercontent.com/8556576/88194561-41f80280-cc3f-11ea-97ed-75657585392f.png)
- When shuffle operations are present, Spark creates 200 partitions by default regardless of the data size. Excessive 
- fragmentation of small files compromises HDFS performance.  The presented plot, produced by Spot, shows how the number 
- of output partitions depends on input size with old/new configurations. As it can be seen in the plot, 
- [Adaptive Execution](https://databricks.com/blog/2020/05/29/adaptive-query-execution-speeding-up-spark-sql-at-runtime.html)
-  creates a reasonable number of partitions proportional to data size. Based on such analysis, enabled by Spot, 
-  it was set as a new default for Enceladus.
+![Small files issue](https://user-images.githubusercontent.com/8556576/88194561-41f80280-cc3f-11ea-97ed-75657585392f.png)
+When shuffle operations are present, Spark creates 200 partitions by default regardless of the data size. Excessive 
+fragmentation of small files compromises HDFS performance.  The presented plot, produced by Spot, shows how the number 
+of output partitions depends on input size with old/new configurations. As it can be seen in the plot, 
+[Adaptive Execution](https://databricks.com/blog/2020/05/29/adaptive-query-execution-speeding-up-spark-sql-at-runtime.html)
+creates a reasonable number of partitions proportional to data size. Based on such analysis, enabled by Spot, 
+it was set as a new default for Enceladus.
   
 #### Example: Parallelism
- ![Parallelism per job](https://user-images.githubusercontent.com/8556576/88376482-ca8cb500-cd9d-11ea-9692-78b659f8b2f9.png)
+Here we demonstrate how to apply selected metrics from [parellel algorithms theory](https://en.wikipedia.org/wiki/Analysis_of_parallel_algorithms) 
+to [Spark execution model](https://spark.apache.org/docs/latest/cluster-overview.html#cluster-mode-overview).
+
+The diagram below shows execution timeline of a Spark app. Here, for simplicity of the demonstration, we assume each 
+executor has a single CPU core. The duration of the run on _m_ executors is denoted _T(m)_. The allocation time of each 
+executor is presented with a dotted orange rectangle. Tasks at the executors are shown as green rectangles. The tasks
+are organized in stages which may overlap. Tasks of each stage are executed in parallel. 
+Those parts of the driver program which do not overlap with stages are pictured as red rectangles. In our analysis,
+we assume those parts make the _sequential part_ of the program which has a fixed duration. 
+It includes the code which is not parallelizable (on executors): 
+startup and scheduling overheads, Spark's query optimizations, external API calls, custom driver code and etc. In other words, 
+it is the part of the program when there are no tasks at executors. 
+The rest of the run duration, corresponds to _parallel part_, i.e. when tasks can be executed.
+![Spark parallelism](https://user-images.githubusercontent.com/8556576/88536230-bc43d080-d00b-11ea-8841-f7a9b925ef6b.png)
+Total _allocated core time_ is a sum of products of the allocation time and the number of cores over all executors.
+Knowing the sequential part and the total duration of all of the tasks, we can also estimate the duration of a (hypothetical)
+run with a single executor. The next plot shows an example how Spot visualizes the described metrics.
+Here, the values averaged over multiple runs are shown for two types of Enceladus apps.  
+
+![Parallelism per job](https://user-images.githubusercontent.com/8556576/88376482-ca8cb500-cd9d-11ea-9692-78b659f8b2f9.png)
+
+The efficiency and speedup are estimated using the following formulas:
+<img src="https://user-images.githubusercontent.com/8556576/88538274-578a7500-d00f-11ea-9b91-bc1391504f97.png" width="350px" />
  
+Please, note, that in this analysis we focus on parallelism on executors, the possible parallelism of the driver part 
+on multiple driver cores requires a separate investigation. 
+
+The next two plots demonstrate histograms of efficiency and speedup for multiple runs of a sample Spark app with different
+ inputs and configurations. 
+![Efficiency hist](https://user-images.githubusercontent.com/8556576/88551797-93c7d080-d023-11ea-876c-de6ff173dbc4.png)
+![Speedup hist](https://user-images.githubusercontent.com/8556576/88552001-cffb3100-d023-11ea-8c85-fd8b97e8359e.png)  
+Further analysis of such metrics may include dependencies on particular configuration values. 
  
 ## Modules
 
