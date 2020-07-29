@@ -1,6 +1,5 @@
-![Spot logo](https://user-images.githubusercontent.com/8556576/87431742-5a38a380-c5e7-11ea-9952-b8bf7f218aae.png)
+![Spot logo](https://user-images.githubusercontent.com/8556576/88801204-9d7b4080-d1a9-11ea-9dcb-d704be2292cf.png)
 
-**S**park[*](https://github.com/apache/spark) **P**arameter **O**p**T**imizer.
 <!-- toc -->
 - [What is Spot?](#what-is-spot)
 - [How Spot is used to tune Spark apps?](#how-spot-is-used-to-tune-Spark-apps?)
@@ -12,13 +11,38 @@
 - [Deployment](#deployment)
 <!-- tocstop -->
 
-## What is Spot
+## What is Spot?
+Spot is a set of tools for monitoring and performance tuning of [Spark](https://github.com/apache/spark) applications. 
+The main idea is to continuously apply statistical analysis on repeating (production) runs of the same applications. 
+This allows to compare target metrics (e.g. time, cluster load, cloud cost) between different code versions and configurations.
+Further, ML models and optimization techniques can be applied to automate configuration of new application runs. 
 
+One of the primarily considered use cases is ETL (Extract Transform Load) application in batch mode. 
+[Enceladus](https://github.com/AbsaOSS/enceladus) is an example of such project. Such application repeatedly runs 
+(e.g. thousands runs per hour) on new data instances which greatly vary in size and processing complexity. For this reason,
+a uniform setup would not be optimal for the entire spectrum of runs. In contrast, a statistical approach allows to 
+categorize cases and set appropriate configuration automatically.  
+
+Spot relies on metadata available in Spark History and, therefore, does not require additional instrumentation of Spark apps.
+This enables collection of statistics of production jobs without compromising their performance.
+
+Spot consists of the following modules:
+
+|     Module     |          Short description          |
+|----------------|-------------------------------------|
+| Crawler        | Provides collection and initial processing of Spark history data. The output is stored in elasticsearch and can be visualized with Kibana for monitoring |                                    |
+| Regression     |(Future) The regression models are using the stored data in order to interpolate time VS. config values. |
+| Setter         |(Future) The Setter module suggests config values for new runs of Spark apps based on the regression model.|
+| Enceladus      |The Enceladus module provides integration capabilities for Spot usage with [Enceladus](https://github.com/AbsaOSS/enceladus)|
+A detailed description of each model can be found in section [Modules](#modules). 
+
+The diagram below shows current Spot architecture. 
 
 ![Spot architecture](https://user-images.githubusercontent.com/8556576/87431759-5e64c100-c5e7-11ea-84bb-ae1e2403c84a.png)
 
 ## How Spot is used to tune Spark apps? 
-In this section we provide examples of plots and analysis which demonstrate how Spot is applied to monitor and tune preformance of Spark jobs.
+In this section we provide examples of plots and analysis which demonstrate how Spot is applied to monitor and tune 
+performance of Spark jobs.
 
 #### Example: Cluster usage over time
 ![Cluster usage](https://user-images.githubusercontent.com/8556576/88381248-5efb1580-cda6-11ea-8eb1-80524b4f167a.png)
@@ -117,7 +141,7 @@ calculated values are added, e.g. total CPU allocation, estimated efficiency and
 (Future) The Setter module suggests config values for new runs of Spark apps based on the regression model.
 
 ### Enceladus
-The Enceladus module provides integration capabilities for SPOT usage with [Enceladus](https://github.com/AbsaOSS/enceladus)
+The Enceladus module provides integration capabilities for Spot usage with [Enceladus](https://github.com/AbsaOSS/enceladus)
 
 ## Deployment
 - Install Python 3 (recommended 3.7 and later)
