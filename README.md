@@ -2,7 +2,7 @@
 
 <!-- toc -->
 - [What is Spot?](#what-is-spot)
-- [How Spot is used to tune Spark apps?](#how-spot-is-used-to-tune-Spark-apps?)
+- [Monitoring examples: How Spot is used to tune Spark apps?](#monitoring-examples)
 - [Modules](#modules)
     - [Crawler](#crawler)
     - [Regression](#regression)
@@ -20,34 +20,35 @@ Further, ML models and optimization techniques can be applied to automate config
 One of the primarily considered use cases is ETL (Extract Transform Load) application in batch mode. 
 [Enceladus](https://github.com/AbsaOSS/enceladus) is an example of such project. Such application repeatedly runs 
 (e.g. thousands runs per hour) on new data instances which greatly vary in size and processing complexity. For this reason,
-a uniform setup would not be optimal for the entire spectrum of runs. In contrast, a statistical approach allows to 
-categorize cases and set appropriate configuration automatically.  
+a uniform setup would not be optimal for the entire spectrum of runs. In contrast, the statistical approach allows to 
+categorize cases and automatically set an individual configuration for each of them.  
 
 Spot relies on metadata available in Spark History and, therefore, does not require additional instrumentation of Spark apps.
-This enables collection of statistics of production jobs without compromising their performance.
+This enables collection of statistics of production runs without compromising their performance.
 
 Spot consists of the following modules:
 
 |     Module     |          Short description          |
 |----------------|-------------------------------------|
-| Crawler        | Provides collection and initial processing of Spark history data. The output is stored in elasticsearch and can be visualized with Kibana for monitoring |                                    |
+| Crawler        | Provides collection and initial processing of Spark history data. The output is stored in elasticsearch and can be visualized with Kibana for monitoring. |                                    
 | Regression     |(Future) The regression models are using the stored data in order to interpolate time VS. config values. |
 | Setter         |(Future) The Setter module suggests config values for new runs of Spark apps based on the regression model.|
-| Enceladus      |The Enceladus module provides integration capabilities for Spot usage with [Enceladus](https://github.com/AbsaOSS/enceladus)|
+| Enceladus      |The Enceladus module provides integration capabilities for Spot usage with [Enceladus](https://github.com/AbsaOSS/enceladus).|
 A detailed description of each model can be found in section [Modules](#modules). 
 
 The diagram below shows current Spot architecture. 
 
 ![Spot architecture](https://user-images.githubusercontent.com/8556576/87431759-5e64c100-c5e7-11ea-84bb-ae1e2403c84a.png)
 
-## How Spot is used to tune Spark apps? 
+## Monitoring examples 
 In this section we provide examples of plots and analysis which demonstrate how Spot is applied to monitor and tune 
 performance of Spark jobs.
 
 #### Example: Cluster usage over time
 ![Cluster usage](https://user-images.githubusercontent.com/8556576/88381248-5efb1580-cda6-11ea-8eb1-80524b4f167a.png)
-This plot shows how many CPU cores were allocated for Spark apps of each user over time. Similar plots can be made for memory used by executors,
-amount of shuffled data and so on. Also, the series can be split by application name or other metadata. Kibana time series, used in this example, does not account for duration of allocation, but this is planned to be addressed using custom plots in future. 
+This plot shows how many CPU cores were allocated for Spark apps of each user over time. Similar plots can be obtained for memory used by executors,
+amount of shuffled data and so on. Also, the series can be split by application name or other metadata. 
+Kibana time series, used in this example, does not account for the duration of allocation, it is planned to be addressed using custom plots in future. 
 
 #### Example: Characteristics of a particular Spark application
 When an application is running repeatedly, statistics of runs can be used to focuse code optimization towards most 
@@ -66,7 +67,7 @@ allocation can be  safely decreased in order to reduce the cluster load. The nex
 #### Example: Dynamic VS Fixed resource allocation 
 ![Dynamic Resource Allocation](https://user-images.githubusercontent.com/8556576/88194526-3a385e00-cc3f-11ea-817b-b72254f16cf9.png)
 The plot above shows the dependence of time of Enceladus runs for a particular dataset on the input size and number of allocated CPU cores. 
-The left sub-plot corresponds to fixed resource allocation which was the default. Due to great variation of input size 
+The left sub-plot corresponds to a fixed resource allocation which was the default. Due to great variation of input size 
 in data pipelines, fixed allocation often leads to either: 1) extended time in case of under-allocation or 2) wasted 
 resources in case of over-allocation. The right sub-plot demonstrates how 
 [Dynamic Resource Allocation](http://spark.apache.org/docs/latest/job-scheduling.html#dynamic-resource-allocation), 
@@ -84,10 +85,10 @@ creates a reasonable number of partitions proportional to data size. Based on su
 it was set as a new default for Enceladus.
   
 #### Example: Parallelism
-Here we demonstrate how to apply selected metrics from [parellel algorithms theory](https://en.wikipedia.org/wiki/Analysis_of_parallel_algorithms) 
+Here we demonstrate application of selected metrics from [parellel algorithms theory](https://en.wikipedia.org/wiki/Analysis_of_parallel_algorithms) 
 to [Spark execution model](https://spark.apache.org/docs/latest/cluster-overview.html#cluster-mode-overview).
 
-The diagram below shows execution timeline of a Spark app. Here, for simplicity of the demonstration, we assume each 
+The diagram below shows execution timeline of a Spark app. Here, for the simplicity of the demonstration, we assume each 
 executor has a single CPU core. The duration of the run on _m_ executors is denoted _T(m)_. The allocation time of each 
 executor is presented with a dotted orange rectangle. Tasks at the executors are shown as green rectangles. The tasks
 are organized in stages which may overlap. Tasks of each stage are executed in parallel. 
@@ -96,9 +97,9 @@ we assume those parts make the _sequential part_ of the program which has a fixe
 It includes the code which is not parallelizable (on executors): 
 startup and scheduling overheads, Spark's query optimizations, external API calls, custom driver code and etc. In other words, 
 it is the part of the program when there are no tasks at executors. 
-The rest of the run duration, corresponds to _parallel part_, i.e. when tasks can be executed.
+The rest of the run duration, corresponds to the _parallel part_, i.e. when tasks can be executed.
 ![Spark parallelism](https://user-images.githubusercontent.com/8556576/88536230-bc43d080-d00b-11ea-8841-f7a9b925ef6b.png)
-Total _allocated core time_ is a sum of products of the allocation time and the number of cores over all executors.
+Total _allocated core time_ is the sum of products of the allocation time and the number of cores over all executors.
 Knowing the sequential part and the total duration of all of the tasks, we can also estimate the duration of a (hypothetical)
 run with a single executor. The next plot shows an example how Spot visualizes the described metrics.
 Here, the values averaged over multiple runs are shown for two types of Enceladus apps.  
@@ -106,6 +107,7 @@ Here, the values averaged over multiple runs are shown for two types of Enceladu
 ![Parallelism per job](https://user-images.githubusercontent.com/8556576/88376482-ca8cb500-cd9d-11ea-9692-78b659f8b2f9.png)
 
 The efficiency and speedup are estimated using the following formulas:
+
 <img src="https://user-images.githubusercontent.com/8556576/88538274-578a7500-d00f-11ea-9b91-bc1391504f97.png" width="350px" />
  
 Please, note, that in this analysis we focus on parallelism on executors, the possible parallelism of the driver part 
