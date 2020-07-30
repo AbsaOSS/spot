@@ -34,6 +34,7 @@ Spot consists of the following modules:
 | Regression     |(Future) The regression models are using the stored data in order to interpolate time VS. config values. |
 | Setter         |(Future) The Setter module suggests config values for new runs of Spark apps based on the regression model.|
 | Enceladus      |The Enceladus module provides integration capabilities for Spot usage with [Enceladus](https://github.com/AbsaOSS/enceladus).|
+
 A detailed description of each model can be found in section [Modules](#modules). 
 
 The diagram below shows current Spot architecture. 
