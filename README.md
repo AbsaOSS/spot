@@ -49,7 +49,7 @@ the performance of Spark jobs.
 ![Cluster usage](https://user-images.githubusercontent.com/8556576/88381248-5efb1580-cda6-11ea-8eb1-80524b4f167a.png)
 This plot shows how many CPU cores were allocated for Spark apps by each user over time. Similar plots can be obtained for memory used by executors,
 the amount of shuffled data and so on. The series can also be split by application name or other metadata. 
-Kibana time series, used in this example, does not account for the duration of allocation, it is planned to be addressed using custom plots in the future. 
+Kibana time series, used in this example, does not account for the duration of allocation. This is planned to be addressed using custom plots in the future. 
 
 #### Example: Characteristics of a particular Spark application
 When an application is running repeatedly, statistics of runs can be used to focus code optimization towards the most 
