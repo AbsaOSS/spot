@@ -18,7 +18,7 @@ This enables comparison of target metrics (e.g. time, cluster load, cloud cost) 
 Furthermore, ML models and optimization techniques can be applied to configure new application runs automatically. 
 
 One of the primary use cases considered is ETL (Extract Transform Load) in batch mode. 
-[Enceladus](https://github.com/AbsaOSS/enceladus) is an example of one such project. Such an application runs repeatedly
+[Enceladus](https://github.com/AbsaOSS/enceladus) is an example of one such projects. Such an application runs repeatedly
 (e.g. thousands of runs per hour) on new data instances which vary greatly in size and processing complexity. For this reason,
 a uniform setup would not be optimal for the entire spectrum of runs. 
 In contrast, the statistical approach allows for the categorization of cases and an automatic setup of configurations for new runs.  
@@ -35,7 +35,7 @@ Spot consists of the following modules:
 | Setter         |(Future) The Setter module suggests config values for new runs of Spark apps based on the regression model.|
 | Enceladus      |The Enceladus module provides integration capabilities for Spot usage with [Enceladus](https://github.com/AbsaOSS/enceladus).|
 
-A detailed description of each model can be found in section [Modules](#modules). 
+A detailed description of each module can be found in section [Modules](#modules). 
 
 The diagram below shows current Spot architecture. 
 
