@@ -35,14 +35,14 @@ class Config(object):
         if prop is None:  # we don't want KeyError
             logger.error(f"property {property_path} not found")
             return None  # just return None if not found
-        return prop
+        return prop.strip("\"\'")
 
 
 class SpotConfig(Config):
 
     @property
     def spark_history_url(self):
-        return self.get_property('SPARK_HISTORY','api_base_url')
+        return self.get_property('SPARK_HISTORY', 'api_base_url')
 
     @property
     def menas_api_url(self):
