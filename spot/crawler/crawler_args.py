@@ -15,7 +15,7 @@ import argparse
 import datetime
 
 
-datetime_format = "%%Y-%%m-%%dT%%H:%%M:%%S"
+datetime_format = "%Y-%m-%dT%H:%M:%S"
 
 
 class CrawlerArgs:
