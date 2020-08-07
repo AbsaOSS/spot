@@ -15,7 +15,7 @@ import argparse
 import datetime
 
 
-datetime_format = "%Y-%m-%dT%H:%M:%S"
+datetime_format = "%%Y-%%m-%%dT%%H:%%M:%%S"
 
 
 class CrawlerArgs:
@@ -25,6 +25,9 @@ class CrawlerArgs:
         self.parser.add_argument("--min_end_date",
                                  help=f"Retrieve apps completed after {datetime_format}",
                                  type=lambda s: datetime.datetime.strptime(s, datetime_format))
+        self.parser.add_argument("--config_path",
+                                 help=f"Absolute path to config.ini configuration file, \
+                                    e.g. '/opt/config.ini'")
 
     def parse_args(self, argv=None):
         return self.parser.parse_args(argv)
