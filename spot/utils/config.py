@@ -13,7 +13,6 @@
 
 import configparser
 import logging
-import urllib.parse
 
 import spot.utils.setup_logger
 

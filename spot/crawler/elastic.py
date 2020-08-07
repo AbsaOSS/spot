@@ -44,7 +44,6 @@ class Elastic:
                                                # Sniffing may change host,
                                                # in some cases new host address may not respond
                                                sniff_on_connection_fail=False,
-                                               sniffer_timeout=REQUEST_TIMEOUT,
                                                timeout=REQUEST_TIMEOUT,
                                                retry_on_timeout=True,
                                                http_auth=(username, password)
