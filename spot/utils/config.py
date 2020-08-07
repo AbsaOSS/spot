@@ -13,7 +13,6 @@
 
 import configparser
 import logging
-import urllib.parse
 
 import spot.utils.setup_logger
 
@@ -33,7 +32,7 @@ class Config(object):
     def get_property(self, *property_path):
         prop = self._config.get(*property_path, fallback=None)
         if prop is None:  # we don't want KeyError
-            logger.error(f"property {property_path} not found")
+            logger.warning(f"property {property_path} not found")
             return None  # just return None if not found
         return prop.strip("\"\'")
 
@@ -70,6 +69,20 @@ class SpotConfig(Config):
     @property
     def elastic_port(self):
         return self.get_property('SPOT_ELASTICSEARCH', 'port')
+
+    @property
+    def elastic_username(self):
+        username = self.get_property('SPOT_ELASTICSEARCH', 'username')
+        if username is None:
+            username = ''
+        return username
+
+    @property
+    def elastic_password(self):
+        password = self.get_property('SPOT_ELASTICSEARCH', 'password')
+        if password is None:
+            password = ''
+        return password
 
     @property
     def elastic_raw_index(self):

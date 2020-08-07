@@ -187,6 +187,8 @@ def main():
 
     elastic = Elastic(host=conf.elastic_host,
                       port=conf.elastic_port,
+                      username=conf.elastic_username,
+                      password=conf.elastic_password,
                       raw_index_name=conf.elastic_raw_index,
                       agg_index_name=conf.elastic_agg_index)
 
