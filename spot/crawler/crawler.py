@@ -39,7 +39,7 @@ def get_default_classification(name):
         'app': name,
         'type': name,
     }
-    values = re.split('[ ;,.\-\%\_]', name)
+    values = re.split(r'[ ;,.\-\%\_]', name)
     i = 1
     for val in values:
         classification[i] = val
@@ -121,7 +121,8 @@ class Crawler:
     def process_new_runs(self):
         processing_start = datetime.now()
         processing_counter = 0
-        logger.info(f"Fetching new apps, completed since {self._latest_seen_date}")
+        logger.info(
+            f"Fetching new apps, completed since {self._latest_seen_date}")
         apps = self._agg.next_app(min_end_date=self._latest_seen_date,
                                   app_status='completed')
         new_counter = 0
@@ -141,7 +142,8 @@ class Crawler:
                     self._process_app(app)
                     processing_counter += 1
                     if processing_counter % 10 == 0:
-                        delta_seconds = (datetime.now() - processing_start).total_seconds()
+                        delta_seconds = (datetime.now() -
+                                         processing_start).total_seconds()
                         per_hour = processing_counter * 3600 / delta_seconds
                         logger.debug(f"processed {processing_counter} runs "
                                      f"in {delta_seconds} seconds "
@@ -194,7 +196,8 @@ def main():
 
     # find starting end date and list of seen apps
     last_seen_end_date, seen_ids = elastic.get_latests_time_ids()
-    logger.debug(f'Latest stored end date: {last_seen_end_date} seen apps: {seen_ids}')
+    logger.debug(
+        f'Latest stored end date: {last_seen_end_date} seen apps: {seen_ids}')
 
     logger.debug(f'param_end_date: {cmd_args.min_end_date}')
 

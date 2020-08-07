@@ -11,6 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import configparser
 import logging
 
@@ -24,7 +25,14 @@ class Config(object):
     _default_config_path = '../../config.ini'
 
     def __init__(self, config_path=_default_config_path):
+        if config_path == Config._default_config_path:
+            config_path = os.path.abspath(os.path.join(
+                os.path.dirname(__file__), config_path))
+            logger.debug(f"Configuration file is default: {config_path}")
+        else:
+            logger.debug(f"Configuration file is provided: {config_path}")
         logger.debug(f"Reading configuration {config_path}")
+
         config = configparser.ConfigParser()
         config.read(config_path)
         self._config = config

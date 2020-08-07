@@ -11,9 +11,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import logging
 from logging.config import fileConfig
 
-fileConfig('../../logging_config.ini')
+default_logging_config_path = "../../logging_config.ini"
+
+logging_config_path = os.path.abspath(os.path.join(
+    os.path.dirname(__file__), default_logging_config_path))
+fileConfig(logging_config_path)
 logger = logging.getLogger(__name__)
 logger.debug('Logger initialized')
