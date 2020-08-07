@@ -30,21 +30,29 @@ class Elastic:
                  raw_index_name='raw_default',
                  agg_index_name='agg_default',
                  host='localhost',
-                 port=9200
+                 port=9200,
+                 username='',
+                 password=''
                  ):
         connection = {
             'host': host,
             'port': port
         }
+        logger.debug(f'Setting Elasticsearch: {connection}')
         self._es = elasticsearch.Elasticsearch([connection],
-                                               sniff_on_start=True,
-                                               sniff_on_connection_fail=True,
+                                               sniff_on_start=False,
+                                               # Sniffing may change host,
+                                               # in some cases new host address may not respond
+                                               sniff_on_connection_fail=False,
                                                sniffer_timeout=REQUEST_TIMEOUT,
-                                               retry_on_timeout=True)
+                                               timeout=REQUEST_TIMEOUT,
+                                               retry_on_timeout=True,
+                                               http_auth=(username, password)
+                                               )
         self._raw_index = raw_index_name
         self._agg_index = agg_index_name
 
-        logger.debug(f'Initializing elasticsearch, checking indexes')
+        logger.debug("Initializing elasticsearch, checking indexes")
         self.log_indexes_stats()
 
     def _insert_item(self, index, uid, item):
@@ -88,12 +96,12 @@ class Elastic:
                               body=body_max_end_time)
         # es uses epoch_millis internally
         timestamp = res_time['aggregations']['max_endTime']['value']
-        # elastic search does not understand it's own internal time format in queries,
-        # therefore using string
-        str_max_end_time = res_time['aggregations']['max_endTime']['value_as_string']
         if timestamp is None:
             return None, id_set
 
+        # elastic search does not understand it's own internal time format in queries,
+        # therefore using string
+        str_max_end_time = res_time['aggregations']['max_endTime']['value_as_string']
         # get list of ids fot the same date
         body_id_list = {
            "stored_fields": [],

@@ -7,6 +7,8 @@ sleep_seconds = 10
 [SPOT_ELASTICSEARCH]
 host = localhost
 port = 9200
+username = ""
+password = ""
 raw_index = galactic_raw_1
 agg_index = galactic_agg_1
 
