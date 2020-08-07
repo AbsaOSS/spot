@@ -153,7 +153,7 @@ The Enceladus module provides integration capabilities for Spot usage with [Ence
 - Install Python 3 (recommended 3.7 and later)
 - Install required modules (see requirements.txt)
 - Clone code to a location of your choice
-- Add project root directory to PYTHONPATH e.g. `export PYTHONPATH="$(which python3):/path/to/spot"` if PYTHONPATH is not already defined, `export PYTHONPATH="${PYTHONPATH}:/path/to/spot"` if it is
+- Add project root directory to PYTHONPATH e.g. `export PYTHONPATH="${PYTHONPATH}:/path/to/spot"` if PYTHONPATH is already defined, otherwise `export PYTHONPATH="$(which python3):/path/to/spot"`
 - Check access to external services:
     - Elasticsearch and Kibana
     - Spark History (2.4 and later recommended)
