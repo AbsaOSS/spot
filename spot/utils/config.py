@@ -99,3 +99,7 @@ class SpotConfig(Config):
     @property
     def elastic_agg_index(self):
         return self.get_property('SPOT_ELASTICSEARCH', 'agg_index')
+
+    @property
+    def elastic_err_index(self):
+        return self.get_property('SPOT_ELASTICSEARCH', 'err_index')
