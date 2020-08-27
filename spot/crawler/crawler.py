@@ -103,11 +103,9 @@ class Crawler:
         # tabu list being constructed for the next iteration
         self._new_tabu_set = set()
 
-
     def _process_raw(self, app):
         # add data
         try:
-            app['history_host'] = self._history_host
             self._agg.add_app_data(app)
             app = default_enrich(app)
             if self._app_specific_obj is not None:
@@ -116,11 +114,10 @@ class Crawler:
         except Exception as e:
             error_msg = str(e)
             logger.warning(f"Failed to process raw for app: {app.get('id')} error: {error_msg}")
-            app['spot'] = {
-                'error': {
-                    'message': error_msg,
-                    'stage': 'raw'
-                }
+            app['spot']['error'] = {
+                'type': e.__class__.__name__,
+                'message': error_msg,
+                'stage': 'raw'
             }
             self._save_obj.save_err(app)
             return False
@@ -139,11 +136,10 @@ class Crawler:
         except Exception as e:
             error_msg = str(e)
             logger.warning(f"Failed to process agg for app: {app.get('id')} error: {error_msg}")
-            app['spot'] = {
-                'error': {
-                    'message': error_msg,
-                    'stage': 'aggregations'
-                }
+            app['spot']['error'] = {
+                'type': e.__class__.__name__,
+                'message': error_msg,
+                'stage': 'aggregations'
             }
             self._save_obj.save_err(app)
             return False
@@ -154,6 +150,10 @@ class Crawler:
         return True
 
     def _process_app(self, app):
+        app['history_host'] = self._history_host
+        app['spot'] = {
+            'time_processed': datetime.now()
+        }
         success = self._process_raw(app)
         if success: # if no exceptions while getting data
             self._process_aggs(app)
