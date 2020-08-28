@@ -9,8 +9,9 @@ host = "localhost"
 port = 9200
 username = ""
 password = ""
-raw_index = "galactic_raw_1"
-agg_index = "galactic_agg_1"
+raw_index = "sample_raw_1"
+agg_index = "sample_agg_1"
+err_index = "sample_err_1"
 
 [MISC]
 output_dir = "output"

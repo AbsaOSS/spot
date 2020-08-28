@@ -137,7 +137,10 @@ Elasticsearch collection. Aggregations for each document are stored in a separat
 collection. The aggregations are performed in the following way: custom aggregations
 (e.g. min, max, mean, non-zero) are calculated for each value (e.g. completed tasks)
 across elements of each array in the original raw document (e.g. executors). Custom
-calculated values are added, e.g. total CPU allocation, estimated efficiency and speedup.
+calculated values are added, e.g. total CPU allocation, estimated efficiency and speedup. 
+Some of the records can be inconsistent due to external services (e.g Spark History Server error) 
+and raise exceptions during processing. Such exceptions are handled and corresponding records 
+are stored in a separate collection along with error messages.
 
 
 ### Regression

@@ -75,6 +75,14 @@ class DefaultSaver:
     def save_agg(agg):
         pprint(agg)
 
+    @staticmethod
+    def save_err(app):
+        pprint(app)
+
+    @staticmethod
+    def log_indexes_stats():
+        pass
+
 
 class Crawler:
 
@@ -95,28 +103,60 @@ class Crawler:
         # tabu list being constructed for the next iteration
         self._new_tabu_set = set()
 
-    def _process_app(self, app):
+    def _process_raw(self, app):
         # add data
-        self._agg.add_app_data(app)
-        app['history_host'] = self._history_host
-        app = default_enrich(app)
-        if self._app_specific_obj is not None:
-            if self._app_specific_obj.is_matching_app(app):
-                app = self._app_specific_obj.enrich(app)
-
+        try:
+            self._agg.add_app_data(app)
+            app = default_enrich(app)
+            if self._app_specific_obj is not None:
+                if self._app_specific_obj.is_matching_app(app):
+                    app = self._app_specific_obj.enrich(app)
+        except Exception as e:
+            error_msg = str(e)
+            logger.warning(f"Failed to process raw for app: {app.get('id')} error: {error_msg}")
+            app['spot']['error'] = {
+                'type': e.__class__.__name__,
+                'message': error_msg,
+                'stage': 'raw'
+            }
+            self._save_obj.save_err(app)
+            return False
         # save
         self._save_obj.save_app(app)
+        return True
 
+    def _process_aggs(self,app):
         # get aggregations
-        if self._app_specific_obj is not None:
-            if self._app_specific_obj.is_matching_app(app):
-                app = self._app_specific_obj.aggregate(app)
+        try:
+            if self._app_specific_obj is not None:
+                if self._app_specific_obj.is_matching_app(app):
+                    app = self._app_specific_obj.aggregate(app)
 
-        aggs = flatten_app(app)
+            aggs = flatten_app(app)
+        except Exception as e:
+            error_msg = str(e)
+            logger.warning(f"Failed to process agg for app: {app.get('id')} error: {error_msg}")
+            app['spot']['error'] = {
+                'type': e.__class__.__name__,
+                'message': error_msg,
+                'stage': 'aggregations'
+            }
+            self._save_obj.save_err(app)
+            return False
 
         # save aggregations
         for agg in aggs:
             self._save_obj.save_agg(agg)
+        return True
+
+    def _process_app(self, app):
+        app['history_host'] = self._history_host
+        app['spot'] = {
+            'time_processed': datetime.now()
+        }
+        success = self._process_raw(app)
+        if success: # if no exceptions while getting data
+            self._process_aggs(app)
 
     def process_new_runs(self):
         processing_start = datetime.now()
@@ -148,6 +188,7 @@ class Crawler:
                         logger.debug(f"processed {processing_counter} runs "
                                      f"in {delta_seconds} seconds "
                                      f"average rate: {per_hour} runs/hour")
+                        self._save_obj.log_indexes_stats()
 
         self._previous_tabu_set = self._new_tabu_set
         logger.info(f"Iteration finished. New apps: {new_counter} "
@@ -192,7 +233,8 @@ def main():
                       username=conf.elastic_username,
                       password=conf.elastic_password,
                       raw_index_name=conf.elastic_raw_index,
-                      agg_index_name=conf.elastic_agg_index)
+                      agg_index_name=conf.elastic_agg_index,
+                      err_index_name=conf.elastic_err_index)
 
     # find starting end date and list of seen apps
     last_seen_end_date, seen_ids = elastic.get_latests_time_ids()
@@ -222,7 +264,6 @@ def main():
     while True:
         crawler.process_new_runs()
         elastic.log_indexes_stats()
-
         time.sleep(sleep_seconds)
 
 

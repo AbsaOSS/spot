@@ -29,6 +29,7 @@ class Elastic:
     def __init__(self,
                  raw_index_name='raw_default',
                  agg_index_name='agg_default',
+                 err_index_name='err_default',
                  host='localhost',
                  port=9200,
                  username='',
@@ -50,17 +51,25 @@ class Elastic:
                                                )
         self._raw_index = raw_index_name
         self._agg_index = agg_index_name
+        self._err_index = err_index_name
 
         logger.debug("Initializing elasticsearch, checking indexes")
         self.log_indexes_stats()
 
     def _insert_item(self, index, uid, item):
-        res = self._es.index(index=index,
-                             op_type = 'create',
-                             id=uid,
-                             body=item,
-                             ignore=[400, 409],
-                             request_timeout=REQUEST_TIMEOUT)
+        if uid is not None:
+            res = self._es.index(index=index,
+                                 op_type = 'create',
+                                 id=uid,
+                                 body=item,
+                                 ignore=[400, 409],
+                                 request_timeout=REQUEST_TIMEOUT)
+        else:
+            res = self._es.index(index=index,
+                                 op_type = 'create',
+                                 body=item,
+                                 ignore=[400, 409],
+                                 request_timeout=REQUEST_TIMEOUT)
         if res.get('result') == 'created':
             logger.debug(f'{uid} added to {self._raw_index}')
         elif res.get('status') == 409:
@@ -77,6 +86,9 @@ class Elastic:
         attempt_id = agg.get('attempt').get('attemptId', 0)
         uid = f'{app_id}-{attempt_id}'
         self._insert_item(self._agg_index, uid, agg)
+
+    def save_err(self, app):
+        self._insert_item(self._err_index, None, app)
 
     def get_latests_time_ids(self):
         id_set = set()
@@ -129,7 +141,8 @@ class Elastic:
     def get_indexes_stats(self):
         indexes = [
             self._raw_index,
-            self._agg_index
+            self._agg_index,
+            self._err_index
         ]
         for index in indexes:
             if self._es.indices.exists(index=index):
