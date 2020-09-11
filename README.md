@@ -176,3 +176,9 @@ The Enceladus module provides integration capabilities for Spot usage with [Ence
 |--min_end_date | None             |Optional. Minimal completion date of the Spark job in the format YYYY-MM-DDThh:mm:ss. Crawler processes Spark jobs completed after the latest of a) the max completion date among already processed jobs (stored in the database) b) this option. In the first run, when there are niether processed jobs in the database nor this option is specified, the crawler starts with the earliest completed job in Spark History.|
 
 This will start the main loop of the crawler. It gets new completed apps, processes and stores them in the database. When all the new apps are processed the crawler sleeps `sleep_seconds` (see config.ini) before the next iteration. To exit the loop, kill the process.
+
+### Importing Kibana Demo Dashboard
+[Kibana directory](spot/kibana/) contains objects which can be 
+[imported to Kibana](https://www.elastic.co/guide/en/kibana/current/managing-saved-objects.html#:~:text=Importedit,already%20in%20Kibana%20are%20overwritten.). 
+For example, there is a [demo dashboard](spot/kibana/spot_demo.ndjson) demonstrating basic statistics of Spark applications.
+
