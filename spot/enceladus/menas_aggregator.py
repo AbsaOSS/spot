@@ -34,12 +34,14 @@ def _match_run(run, app_id, clfsion):
     dataset_name = run.get('dataset')
     dataset_version = run.get('datasetVersion')
     metadata = run.get('controlMeasure').get('metadata')
-    info_date = metadata.get('informationDate')
+    # info_date = metadata.get('informationDate')
     info_version = metadata.get('version')
     add_info = metadata.get('additionalInfo')
     app_version = add_info.get('std_enceladus_version')
 
     run_app_id = ''
+    if clfsion.get('type') == 'standardization&conformance':
+        run_app_id = add_info.get('std_application_id')
     if clfsion.get('type') == 'standardization':
         run_app_id = add_info.get('std_application_id')
     elif clfsion.get('type') == 'conformance':

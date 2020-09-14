@@ -11,26 +11,61 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import datetime
 
-def _is_standardization(name):
+info_date_pattern = '%Y-%m-%d'
+
+
+def is_enceladus_app(name):
+    return name.startswith('Enceladus') or _old_is_enceladus_app(name)
+
+
+def get_classification(name):
+    if name.startswith('Enceladus'): # new naming convention
+        values = name.split(' ')
+        classification = {
+            'project': 'enceladus',
+            'app': values[0].lower(),
+            'type': values[1].lower(),
+            'app_version': values[2],
+            'dataset': values[3],
+            'dataset_version': int(values[4]) if values[4].isdigit() else values[4],
+            'info_date': values[5],
+            'info_date_casted': _info_date_str_to_datetime(values[5]),
+            'info_version': int(values[6]) if values[6].isdigit() else values[6]
+        }
+        return classification
+    else: # old naming convention
+        return _old_get_classification(name)
+
+
+def _info_date_str_to_datetime(info_date_str):
+    try:
+        date_time_obj = datetime.datetime.strptime(info_date_str, info_date_pattern)
+        return date_time_obj
+    except ValueError:
+        return None
+
+
+def _old_is_standardization(name):
     spl = name.split(' ')
     return name.startswith('Standardisation ') and len(spl) == 6
 
 
-def _is_conformance(name):
+def _old_is_conformance(name):
     spl = name.split(' ')
     return name.startswith('Dynamic Conformance ') and len(spl) == 7
 
 
-def is_enceladus_app(name):
-    return _is_standardization(name) or _is_conformance(name)
+def _old_is_enceladus_app(name):
+    return _old_is_standardization(name) or _old_is_conformance(name)
 
 
-def get_classification(name):
+def _old_get_classification(name):
     values = name.split(' ')
-    if _is_standardization(name):
+    if _old_is_standardization(name):
         app_type = 'standardization'
-    if _is_conformance(name):
+    if _old_is_conformance(name):
         app_type = 'conformance'
         values.pop(0)
     if app_type is not None:
@@ -42,6 +77,7 @@ def get_classification(name):
             'dataset': values[2],
             'dataset_version': int(values[3]) if values[3].isdigit() else values[3],
             'info_date': values[4],
+            'info_date_casted': _info_date_str_to_datetime(values[4]),
             'info_version': int(values[5]) if values[5].isdigit() else values[5]
         }
     return classification
