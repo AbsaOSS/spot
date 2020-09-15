@@ -224,9 +224,15 @@ def main():
     cmd_args = CrawlerArgs().parse_args()
     conf = SpotConfig()
 
-    menas_ag = MenasAggregator(conf.menas_api_url,
+    if conf.menas_api_url is not None:
+        logger.info(f"adding Menas aggregator, api url {conf.menas_api_url}")
+        menas_ag = MenasAggregator(conf.menas_api_url,
                                conf.menas_username,
                                conf.menas_password)
+    else:
+        menas_ag = None
+        logger.info('Menas integration disabled as api url not provided in config')
+
 
     elastic = Elastic(host=conf.elastic_host,
                       port=conf.elastic_port,
