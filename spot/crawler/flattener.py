@@ -15,7 +15,6 @@ import pandas as pd
 import numpy as np
 
 import logging
-from pprint import pprint
 
 from spot.crawler.elastic import Elastic
 from spot.utils.config import SpotConfig
@@ -27,37 +26,74 @@ logger = logging.getLogger(__name__)
 
 DF = pd.DataFrame
 
+# custom aggregations
+
 
 def count_zeroes(series):
     return (series.values == 0).sum()
 
 
+def count_not_null(series):
+    return int(series.count())
+
+
+def concat_unique_values(series):
+    return '|'.join(series.unique())
+
+
+def rsd(series):
+    """ Return Relative Standard Deviation (RSD) aka Coefficient of Variation (CV) of a numeric series."""
+    mean = series.mean()
+    if mean == 0:
+        return np.NaN
+    std = series.std()
+    rsd = std / abs(mean)
+    return rsd
+
+
+# This dictionary defines which aggregations are applied to each column type
 # see https://pandas.pydata.org/pandas-docs/stable/reference/series.html
 default_type_aggregations = {
-    np.number: [DF.min, DF.max, DF.sum, DF.mean, DF.nunique, count_zeroes],
-    np.object: [DF.min, DF.max, pd.Series.nunique],
+    np.number: [DF.min, DF.max, DF.sum, DF.mean, DF.std, DF.nunique, count_zeroes, count_not_null, rsd],
+    np.object: [count_not_null, pd.Series.nunique, concat_unique_values], # corresponds to string type
     np.datetime64: [min, max],
     bool: [DF.any, DF.all, DF.sum]
 }
 
 
 def aggregate_by_col_type(df, type_aggregations=default_type_aggregations):
+    """Apply lists of aggregations to specified column types of DataFrame. Return results as a dict.
+
+    If the result of an aggregation is NA, NaN, None or NaT it is omitted in the output dict.
+    Keyword arguments:
+    type_aggregations -- dict of {type: [list, of, aggregations]}
+    """
     n = len(df.index)
     result = {'elements_count': n}
     if n == 0:
         return result
-    for t, aggs in type_aggregations.items():
+    # apply aggregations to columns of different types
+    for t, aggs in type_aggregations.items(): # t - column type, aggs - aggregations
+        # select subset of columns of type t
         subset = df.select_dtypes([t])
         if len(subset.columns) ==0: # if no columns of selected type
             continue
-        res1 = subset.agg(aggs).fillna(-1)
+        # apply aggregations for the given type
+        res1 = subset.agg(aggs)
         for column_name, elements in res1.items():
             if column_name not in result.keys():
                 result[column_name] = {}
-            for i, v in elements.items():
-                if t is bool:
-                    v = bool(v)
-                result[column_name][i] = v
+            for agg_name, value in elements.items():
+                if pd.isna(value): # skip property if the value is NA, NaN, None or NaT
+                    logger.debug(f"isna value skipped in aggregations: "
+                                 f"column_name : {column_name}, agg_name: {agg_name}, value: {value}")
+                    continue
+                if t is bool: # aggregations over bool columns have to be casted for compatibility w Elasticsearch
+                    if isinstance(value, np.bool_):
+                        value = bool(value)
+                    if isinstance(value, np.int64):
+                        value = int(value)
+                result[column_name][agg_name] = value
     return result
 
 
