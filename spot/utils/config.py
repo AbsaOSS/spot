@@ -71,12 +71,23 @@ class SpotConfig(Config):
         return 60
 
     @property
+    def elasticsearch_url(self):
+        return self.get_property('SPOT_ELASTICSEARCH', 'elasticsearch_url')
+
+    @property
     def elastic_host(self):
         return self.get_property('SPOT_ELASTICSEARCH', 'host')
 
     @property
     def elastic_port(self):
         return self.get_property('SPOT_ELASTICSEARCH', 'port')
+
+    @property
+    def ssl(self):
+        ssl = self.get_property('SPOT_ELASTICSEARCH', 'ssl')
+        if ssl == "True":
+            return True
+        return False
 
     @property
     def elastic_username(self):

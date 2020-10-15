@@ -113,7 +113,8 @@ class Crawler:
                     app = self._app_specific_obj.enrich(app)
         except Exception as e:
             error_msg = str(e)
-            logger.warning(f"Failed to process raw for app: {app.get('id')} error: {error_msg}")
+            logger.warning(
+                f"Failed to process raw for app: {app.get('id')} error: {error_msg}")
             app['spot']['error'] = {
                 'type': e.__class__.__name__,
                 'message': error_msg,
@@ -125,7 +126,7 @@ class Crawler:
         self._save_obj.save_app(app)
         return True
 
-    def _process_aggs(self,app):
+    def _process_aggs(self, app):
         # get aggregations
         try:
             if self._app_specific_obj is not None:
@@ -135,7 +136,8 @@ class Crawler:
             aggs = flatten_app(app)
         except Exception as e:
             error_msg = str(e)
-            logger.warning(f"Failed to process agg for app: {app.get('id')} error: {error_msg}")
+            logger.warning(
+                f"Failed to process agg for app: {app.get('id')} error: {error_msg}")
             app['spot']['error'] = {
                 'type': e.__class__.__name__,
                 'message': error_msg,
@@ -155,7 +157,7 @@ class Crawler:
             'time_processed': datetime.now()
         }
         success = self._process_raw(app)
-        if success: # if no exceptions while getting data
+        if success:  # if no exceptions while getting data
             self._process_aggs(app)
 
     def process_new_runs(self):
@@ -227,12 +229,12 @@ def main():
     if conf.menas_api_url is not None:
         logger.info(f"adding Menas aggregator, api url {conf.menas_api_url}")
         menas_ag = MenasAggregator(conf.menas_api_url,
-                               conf.menas_username,
-                               conf.menas_password)
+                                   conf.menas_username,
+                                   conf.menas_password)
     else:
         menas_ag = None
-        logger.info('Menas integration disabled as api url not provided in config')
-
+        logger.info(
+            'Menas integration disabled as api url not provided in config')
 
     elastic = Elastic(host=conf.elastic_host,
                       port=conf.elastic_port,
@@ -240,7 +242,9 @@ def main():
                       password=conf.elastic_password,
                       raw_index_name=conf.elastic_raw_index,
                       agg_index_name=conf.elastic_agg_index,
-                      err_index_name=conf.elastic_err_index)
+                      err_index_name=conf.elastic_err_index,
+                      elasticsearch_url=conf.elasticsearch_url,
+                      ssl=conf.ssl)
 
     # find starting end date and list of seen apps
     last_seen_end_date, seen_ids = elastic.get_latests_time_ids()
@@ -249,8 +253,8 @@ def main():
 
     logger.debug(f'param_end_date: {cmd_args.min_end_date}')
 
-    if (cmd_args.min_end_date is not None) \
-        and (
+    if (cmd_args.min_end_date is not None)
+    and (
         (last_seen_end_date is None)
         or (last_seen_end_date < cmd_args.min_end_date)
     ):
