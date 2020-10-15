@@ -253,11 +253,9 @@ def main():
 
     logger.debug(f'param_end_date: {cmd_args.min_end_date}')
 
-    if (cmd_args.min_end_date is not None)
-    and (
-        (last_seen_end_date is None)
-        or (last_seen_end_date < cmd_args.min_end_date)
-    ):
+    if (cmd_args.min_end_date is not None) and\
+        ((last_seen_end_date is None) or
+         (last_seen_end_date < cmd_args.min_end_date)):
         last_seen_end_date = cmd_args.min_end_date
         seen_ids = dict()
     logger.debug(f'Will get apps completed after: {last_seen_end_date}')

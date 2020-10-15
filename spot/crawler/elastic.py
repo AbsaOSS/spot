@@ -35,8 +35,7 @@ class Elastic:
                  username='',
                  password='',
                  elasticsearch_url='',
-                 ssl=False
-                 ):
+                 ssl=False):
 
         if elasticsearch_url:
             connection = elasticsearch_url
