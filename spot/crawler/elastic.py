@@ -15,6 +15,7 @@ import logging
 import elasticsearch
 import pandas as pd
 from datetime import datetime
+from pprint import pprint
 
 from spot.crawler.commons import sizeof_fmt
 from spot.utils.config import SpotConfig
@@ -178,6 +179,8 @@ class Elastic:
         size_bytes = primaries['store']['size_in_bytes']
         return index, docs_count, size_bytes
 
+# REGRESSION
+
     def get_top_tags(self, min_count = 8):
         body = {
             "size": 0,
@@ -200,29 +203,138 @@ class Elastic:
                 }
             }
         }
-        res = self._es.search(index=self._raw_index, body=body)
+        res = self._es.search(index=self._agg_index, body=body)
         logger.debug(res)
         buckets = res.get('aggregations').get('top_tags').get('buckets')
         for bucket in buckets:
             yield bucket.get("key"), bucket.get("doc_count")
 
-    def get_by_tag(self, tag):
+    def get_all_by_tag(self, tag, size):
         body = {
             "query": {
                 "term": {
-                    "app_specific_data.tag": tag
+                    "app_specific_data.tag.keyword": tag
                 }
-            }
+            },
+            'size': size
         }
-        res = self._es.search(index=self._raw_index, body=body)
-        logger.debug(res)
+        res = self._es.search(index=self._agg_index, body=body)
+        #logger.debug(res)
+        count = res.get('hits').get('total').get('value')
         hits = res.get('hits').get('hits')
+        #pprint(res)
+        print(f"count: {count} len: {len(hits)}")
+        result = []
         for hit in hits:
-            yield hit.get('_source')
+            result.append(hit.get('_source'))
+        return result
+
+    def get_by_tag(self, tag, size):
+        body = {
+            "query": {
+                "bool": {
+                    "filter": [
+                        {"term": {"app_specific_data.tag.keyword": tag}},
+                        {"term": {"isFinalAttempt": True}},
+                        {"term": {"attempt.aggs.allexecutors.executors.isActive.all": True}},
+                        {"term": {"attempt.aggs.allexecutors.executors.failedTasks.sum": 0}},
+                        {"term": {"attempt.aggs.stages.numFailedTasks.sum": 0}}
+                    ],
+                    "must_not": [
+                        {"term": {"attempt.aggs.stages.elements_count": 0}},
+                        {"term": {"attempt.aggs.allexecutors.executors.elements_count": 0}},
+                        {"term": {"attempt.aggs.summary.stages_max_input_blocks": 0}},
+                        {"term": {"attempt.aggs.summary.executors_total_input_blocks": 0}},
+                        {"term": {"attempt.aggs.stages.inputBytes.sum": 0}},
+                        {"term": {"attempt.aggs.stages.numCompleteTasks.sum": 0}}
+                    ]
+                }
+            },
+            'size': size
+        }
+        res = self._es.search(index=self._agg_index, body=body)
+        #logger.debug(res)
+        count = res.get('hits').get('total').get('value')
+        hits = res.get('hits').get('hits')
+        #pprint(res)
+        #print(f"count: {count} len: {len(hits)}")
+        result = []
+        for hit in hits:
+            result.append(hit.get('_source'))
+        return result
 
     def get_by_id(self, id):
         res = self._es.get(index=self._raw_index, id=id)
         return res.get('_source')
+
+    def get_training_tags(self, min_doc_count = 4):
+        body = {
+            "query": {
+                "bool": {
+                    "filter": [
+                        {"term": {"isFinalAttempt": True}},
+                        {"term": {"attempt.aggs.allexecutors.executors.isActive.all": True}},
+                        {"term": {"attempt.aggs.allexecutors.executors.failedTasks.sum": 0}},
+                        {"term": {"attempt.aggs.stages.numFailedTasks.sum": 0}}
+
+                    ],
+                    "must_not": [
+                        {"term": {"attempt.aggs.stages.elements_count": 0}},
+                        {"term": {"attempt.aggs.allexecutors.executors.elements_count": 0}},
+                        {"term": {"attempt.aggs.summary.stages_max_input_blocks": 0}},
+                        {"term": {"attempt.aggs.summary.executors_total_input_blocks": 0}},
+                        {"term": {"attempt.aggs.stages.inputBytes.sum": 0}},
+                        {"term": {"attempt.aggs.stages.numCompleteTasks.sum": 0}}
+                    ]
+                }
+            },
+            "size": 0,
+            "aggs": {
+                "top_tags": {
+                    "terms": {
+                        "field": "app_specific_data.tag.keyword",
+                        "min_doc_count": min_doc_count
+                    },
+                    "aggs": {
+                        "distinct_cores_count": {
+                            "cardinality": {
+                                "field": "attempt.aggs.allexecutors.executors.totalCores.sum"
+                            }
+                        },
+                        "distinct_input_blocks": {
+                            "cardinality": {
+                                "field": "attempt.aggs.summary.stages_max_input_blocks"
+                            }
+                        },
+                        "sample_variance": {
+                            "bucket_script": {
+                                "buckets_path": {
+                                    "distinct_cores_count": "distinct_cores_count",
+                                    "distinct_input_blocks": "distinct_input_blocks"
+                                },
+                                "script": {
+                                    "source": "params.distinct_cores_count * params.distinct_input_blocks"
+                                }
+                            }
+                        },
+                        "blah_bucket_sort": {
+                            "bucket_sort": {
+                                "sort": [
+                                    { "sample_variance": { "order": "desc" } },
+                                    { "_count": { "order": "desc" } }
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        res = self._es.search(index=self._agg_index, body=body)
+        #logger.debug(res)
+        buckets = res.get('aggregations').get('top_tags').get('buckets')
+        return buckets
+
 
 
 def main():
@@ -235,7 +347,7 @@ def main():
         print(f'{tag}: {count}')
 
     tag1, count1 = top_tags[0]
-    runs = es.get_by_tag(tag1)
+    runs = es.get_all_by_tag(tag1)
 
     # convert to df
     df = pd.io.json.json_normalize(list(runs)).set_index('id')

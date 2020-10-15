@@ -13,6 +13,7 @@
 
 import math
 import logging
+import numpy as np
 
 import spot.utils.setup_logger
 
@@ -36,7 +37,7 @@ def get_last_attempt(app):
 
 
 def bytes_to_hdfs_block(size_bytes):
-    return math.ceil(size_bytes / HDFS_block_size)
+    return np.ceil(size_bytes / HDFS_block_size)
 
 
 def parse_to_bytes(size_str):
