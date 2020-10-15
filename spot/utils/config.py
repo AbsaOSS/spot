@@ -84,10 +84,7 @@ class SpotConfig(Config):
 
     @property
     def ssl(self):
-        ssl = self.get_property('SPOT_ELASTICSEARCH', 'ssl')
-        if ssl == "True":
-            return True
-        return False
+        return self._config['SPOT_ELASTICSEARCH'].getboolean('ssl')
 
     @property
     def elastic_username(self):
