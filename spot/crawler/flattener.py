@@ -278,12 +278,10 @@ def calculate_summary(attempt, aggs):
             - aggs['stages']['inputBytes']['max']
 
         summary = {
-
             'parallel_work': parallel_work,
             'parallel_part': parallel_part,
             'seq_part': seq_part,
             'est_seq_time': est_seq_time,
-            'core_cost': core_cost,
             'stages_in_parallel': stages_in_parallel,
             'stages_sum':  stages_sum,
             'stages_interval': stages_interval,
