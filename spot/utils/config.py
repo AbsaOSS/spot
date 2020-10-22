@@ -39,10 +39,17 @@ class Config(object):
 
     def get_property(self, *property_path):
         prop = self._config.get(*property_path, fallback=None)
-        if prop is None:  # we don't want KeyError
+        if prop is None:
             logger.warning(f"property {property_path} not found")
-            return None  # just return None if not found
+            return None
         return prop.strip("\"\'")
+
+    def get_boolean(self, *property_path):
+        boolean = self._config[property_path[0]].getboolean(property_path[1])
+        if boolean is None:
+            logger.warning(f"property {property_path} not found")
+            return None
+        return boolean
 
 
 class SpotConfig(Config):
@@ -84,7 +91,7 @@ class SpotConfig(Config):
 
     @property
     def ssl(self):
-        return self._config['SPOT_ELASTICSEARCH'].getboolean('ssl')
+        return self.get_boolean('SPOT_ELASTICSEARCH', 'ssl')
 
     @property
     def elastic_username(self):
