@@ -1,24 +1,22 @@
 [SPARK_HISTORY]
-api_base_url = "http://localhost:18080/api/v1"
+api_base_url = http://localhost:18080/api/v1
 
 [CRAWLER]
 sleep_seconds = 10
 
 [SPOT_ELASTICSEARCH]
-host = "localhost"
-port = 9200
-username = ""
-password = ""
-raw_index = "spot_raw_1"
-agg_index = "spot_agg_1"
-err_index = "spot_err_1"
+elasticsearch_url = http://localhost:9200
+username =
+password =
+raw_index = spot_raw_1
+agg_index = spot_agg_1
+err_index = spot_err_1
 
 [MISC]
-output_dir = "output"
-hdfs_block_size = "128 M"
-log_level = "debug"
+output_dir = output
+log_level = debug
 
 [MENAS]
-api_base_url = "http://localhost:8080/menas/api"
-username = "user"
-password = "changeme"
+api_base_url = http://localhost:8080/menas/api
+username = user
+password = changeme

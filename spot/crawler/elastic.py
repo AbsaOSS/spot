@@ -27,18 +27,14 @@ REQUEST_TIMEOUT = 30
 class Elastic:
 
     def __init__(self,
+                 elasticsearch_url='http://localhost:9200',
+                 username='',
+                 password='',
                  raw_index_name='raw_default',
                  agg_index_name='agg_default',
-                 err_index_name='err_default',
-                 host='localhost',
-                 port=9200,
-                 username='',
-                 password=''
-                 ):
-        connection = {
-            'host': host,
-            'port': port
-        }
+                 err_index_name='err_default'):
+
+        connection = elasticsearch_url
         logger.debug(f'Setting Elasticsearch: {connection}')
         self._es = elasticsearch.Elasticsearch([connection],
                                                sniff_on_start=False,
@@ -58,7 +54,8 @@ class Elastic:
 
     def _process_elasticsearch_error(self, res):
         if res.get('status') == 409:
-            logger.warning(f'Doc already indexed: {res.get("error").get("reason")}')
+            logger.warning(
+                f'Doc already indexed: {res.get("error").get("reason")}')
         else:
             logger.warning(res.get('error').get('reason'))
         es_error = res.get("error")
@@ -119,13 +116,13 @@ class Elastic:
         # get max end_time
         body_max_end_time = {
             'size': 0,
-            'aggs' : {
+            'aggs': {
                 'max_endTime': {'max': {'field': 'attempts.endTime'}}
             }
         }
 
         res_time = self._es.search(index=self._raw_index,
-                              body=body_max_end_time)
+                                   body=body_max_end_time)
         # es uses epoch_millis internally
         timestamp = res_time['aggregations']['max_endTime']['value']
         if timestamp is None:
@@ -136,11 +133,11 @@ class Elastic:
         str_max_end_time = res_time['aggregations']['max_endTime']['value_as_string']
         # get list of ids fot the same date
         body_id_list = {
-           "stored_fields": [],
-           "query": {
-               "match": {
-                  "attempts.endTime": str_max_end_time
-               }
+            "stored_fields": [],
+            "query": {
+                "match": {
+                    "attempts.endTime": str_max_end_time
+                }
             }
         }
 
@@ -178,7 +175,7 @@ class Elastic:
         size_bytes = primaries['store']['size_in_bytes']
         return index, docs_count, size_bytes
 
-    def get_top_tags(self, min_count = 8):
+    def get_top_tags(self, min_count=8):
         body = {
             "size": 0,
             "aggs": {
