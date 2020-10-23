@@ -236,15 +236,12 @@ def main():
         logger.info(
             'Menas integration disabled as api url not provided in config')
 
-    elastic = Elastic(host=conf.elastic_host,
-                      port=conf.elastic_port,
+    elastic = Elastic(elasticsearch_url=conf.elasticsearch_url,
                       username=conf.elastic_username,
                       password=conf.elastic_password,
                       raw_index_name=conf.elastic_raw_index,
                       agg_index_name=conf.elastic_agg_index,
-                      err_index_name=conf.elastic_err_index,
-                      elasticsearch_url=conf.elasticsearch_url,
-                      ssl=conf.ssl)
+                      err_index_name=conf.elastic_err_index)
 
     # find starting end date and list of seen apps
     last_seen_end_date, seen_ids = elastic.get_latests_time_ids()

@@ -27,24 +27,14 @@ REQUEST_TIMEOUT = 30
 class Elastic:
 
     def __init__(self,
-                 raw_index_name='raw_default',
-                 agg_index_name='agg_default',
-                 err_index_name='err_default',
-                 host='localhost',
-                 port=9200,
+                 elasticsearch_url='http://localhost:9200',
                  username='',
                  password='',
-                 elasticsearch_url='',
-                 ssl=False):
+                 raw_index_name='raw_default',
+                 agg_index_name='agg_default',
+                 err_index_name='err_default'):
 
-        if elasticsearch_url:
-            connection = elasticsearch_url
-        else:
-            connection = {
-                'host': host,
-                'port': port
-            }
-
+        connection = elasticsearch_url
         logger.debug(f'Setting Elasticsearch: {connection}')
         self._es = elasticsearch.Elasticsearch([connection],
                                                sniff_on_start=False,
@@ -53,8 +43,7 @@ class Elastic:
                                                sniff_on_connection_fail=False,
                                                timeout=REQUEST_TIMEOUT,
                                                retry_on_timeout=True,
-                                               http_auth=(username, password),
-                                               use_ssl=ssl
+                                               http_auth=(username, password)
                                                )
         self._raw_index = raw_index_name
         self._agg_index = agg_index_name

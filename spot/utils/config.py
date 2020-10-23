@@ -45,7 +45,7 @@ class Config(object):
         return prop.strip("\"\'")
 
     def get_boolean(self, *property_path):
-        boolean = self._config[property_path[0]].getboolean(property_path[1])
+        boolean = self._config.getboolean(*property_path, fallback=None)
         if boolean is None:
             logger.warning(f"property {property_path} not found")
             return None
@@ -80,18 +80,6 @@ class SpotConfig(Config):
     @property
     def elasticsearch_url(self):
         return self.get_property('SPOT_ELASTICSEARCH', 'elasticsearch_url')
-
-    @property
-    def elastic_host(self):
-        return self.get_property('SPOT_ELASTICSEARCH', 'host')
-
-    @property
-    def elastic_port(self):
-        return self.get_property('SPOT_ELASTICSEARCH', 'port')
-
-    @property
-    def ssl(self):
-        return self.get_boolean('SPOT_ELASTICSEARCH', 'ssl')
 
     @property
     def elastic_username(self):
