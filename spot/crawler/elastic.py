@@ -94,7 +94,7 @@ class Elastic:
                                  ignore=[400, 409],
                                  request_timeout=REQUEST_TIMEOUT)
         if res.get('result') == 'created':
-            logger.debug(f'{uid} added to {self._raw_index}')
+            logger.debug(f'{uid} added to {index}')
         else:
             self._process_elasticsearch_error(res)
 
