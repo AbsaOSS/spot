@@ -12,6 +12,7 @@
 # limitations under the License.
 
 import logging
+from datetime import datetime
 
 from spot.enceladus.menas_api import MenasApi
 import spot.enceladus.classification as clsf
@@ -20,6 +21,17 @@ import spot.utils.setup_logger
 
 
 logger = logging.getLogger(__name__)
+
+
+# Checkpoints may have different datetime formats
+def parse_date(text):
+    for fmt in ["%d-%m-%Y %H:%M:%S %z", "%d-%m-%Y %H:%M:%S"]:
+        try:
+            return datetime.strptime(text, fmt)
+        except ValueError:
+            pass
+    logger.warning(f"No valid date format found for {text}")
+    return
 
 
 def _match_values(left, right):
@@ -72,6 +84,7 @@ class MenasAggregator:
         additional_info = run['controlMeasure']['metadata']['additionalInfo']
         for key, value in additional_info.items():
             additional_info[key] = cast_string_to_value(value)
+        start_date_time = parse_date(run.get('startDateTime'))
         return run
 
     def get_runs(self, app_id, clfsion):
@@ -135,5 +148,57 @@ class MenasAggregator:
         for attempt in app.get('attempts'):
             run = attempt.get('app_specific_data', None).get('enceladus_run', None)
             if run is not None:
-                run.get('controlMeasure', None).pop('checkpoints', None)  # remove checkpoints array from run
+                # pop  original checkpoints array from run
+                raw_checkpoints = run.get('controlMeasure', None).pop('checkpoints', None)
+                if raw_checkpoints is not None:
+                    # add aggregations of checkpoints to run
+                    run['controlMeasure']['checkpoints'] = MenasAggregator._aggregate_checkpoints(raw_checkpoints)
         return app
+
+    @staticmethod
+    def _aggregate_checkpoints(raw_checkpoints):
+        new_checkpoints = {'elements_count': len(raw_checkpoints)}
+        control_values_match = True
+        agg_checkpoints = {}
+        reference_controls = {}
+        for checkpoint in raw_checkpoints:
+            checkpoint['name'] = checkpoint['name'].replace(' ', '')
+            process_start_time = parse_date(checkpoint.pop('processStartTime'))
+            process_end_time = parse_date(checkpoint.pop('processEndTime'))
+
+            # if the times cannot be casted correctly, the fields are skipped, not to interfere with ES schema
+            if (process_start_time is not None) and (process_end_time is not None):
+                checkpoint['processStartTime'] = process_start_time
+                checkpoint['processEndTime'] = process_end_time
+                duration = (process_end_time - process_start_time).total_seconds() * 1000
+                checkpoint['duration'] = duration
+
+            controls = checkpoint.pop('controls', None)
+
+            if control_values_match: # we only check control values until first mismatch
+                if not reference_controls: # the first checkpoint's controls are set as a reference
+                    for control in controls:
+                        reference_controls[control['controlName']] = control['controlValue']
+                else: # reference controls already set in first checkpoint
+                    for control in controls:
+                        # the control values are originally stored as strings
+                        # we assume '123' and '123.0' are distinct values
+                        # as they also should be of the same type and precision
+                        if not reference_controls[control['controlName']] == control['controlValue']:
+                            control_values_match = False
+                            control_values_error = {
+                                'checkpoint': checkpoint,
+                                'controlName':control['controlName'],
+                                'controlValue': control['controlValue'],
+                                'initialControlValue': reference_controls[control['controlName']]
+                            }
+                            new_checkpoints['control_values_error'] = control_values_error
+                            break
+
+            # save checkpoint
+            agg_checkpoints[checkpoint['name']] = checkpoint
+
+        new_checkpoints['agg_checkpoints'] = agg_checkpoints
+        new_checkpoints['control_values_match'] = control_values_match
+        return new_checkpoints
+
