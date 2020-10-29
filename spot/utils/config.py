@@ -48,7 +48,6 @@ class Config(object):
         boolean = self._config.getboolean(*property_path, fallback=None)
         if boolean is None:
             logger.warning(f"property {property_path} not found")
-            return None
         return boolean
 
 
@@ -76,6 +75,13 @@ class SpotConfig(Config):
         if str_val.isdigit():
             return int(str_val)
         return 60
+
+    @property
+    def crawler_skip_exceptions(self):
+        skip_exceptions = self.get_boolean('CRAWLER', 'skip_exceptions')
+        if skip_exceptions is None:
+            skip_exceptions = False
+        return skip_exceptions
 
     @property
     def elasticsearch_url(self):

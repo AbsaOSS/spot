@@ -91,17 +91,43 @@ class Crawler:
                  app_specific_obj=None,
                  save_obj=DefaultSaver(),
                  last_date=None,
-                 seen_app_ids=set()):
+                 seen_app_ids=set(),
+                 skip_exceptions=False):
         self._agg = HistoryAggregator(spark_history_url)
         self._history_host = urlparse(spark_history_url).hostname
         self._name_filter_func = name_filter_func
         self._save_obj = save_obj
         self._app_specific_obj = app_specific_obj
+        self.skip_exceptions = skip_exceptions
+
         self._latest_seen_date = last_date
         # list of apps with the same last date, seen in the previous iteration
         self._previous_tabu_set = seen_app_ids
         # tabu list being constructed for the next iteration
         self._new_tabu_set = set()
+
+    def _handle_processing_exception_(self, e, stage_name, id='unknown'):
+        error_msg = str(e)
+        logger.warning(
+            f"Failed to process {stage_name} for app: {id} error: {error_msg}")
+        err = {
+            'spot': {
+                'time_processed': datetime.now(),
+                'error': {
+                    'type': e.__class__.__name__,
+                    'message': error_msg,
+                    'stage': 'raw',
+                    'spark_app_id': id,
+                    'history_host': self._history_host
+
+                }
+            }
+        }
+        self._save_obj.save_err(err)
+        if not self.skip_exceptions:
+            logger.warning('Skipping malformed metadata is disabled')
+            raise e
+
 
     def _process_raw(self, app):
         # add data
@@ -112,15 +138,7 @@ class Crawler:
                 if self._app_specific_obj.is_matching_app(app):
                     app = self._app_specific_obj.enrich(app)
         except Exception as e:
-            error_msg = str(e)
-            logger.warning(
-                f"Failed to process raw for app: {app.get('id')} error: {error_msg}")
-            app['spot']['error'] = {
-                'type': e.__class__.__name__,
-                'message': error_msg,
-                'stage': 'raw'
-            }
-            self._save_obj.save_err(app)
+            self._handle_processing_exception_(e, 'raw', app.get('id', 'unknown'))
             return False
         # save
         self._save_obj.save_app(app)
@@ -135,15 +153,7 @@ class Crawler:
 
             aggs = flatten_app(app)
         except Exception as e:
-            error_msg = str(e)
-            logger.warning(
-                f"Failed to process agg for app: {app.get('id')} error: {error_msg}")
-            app['spot']['error'] = {
-                'type': e.__class__.__name__,
-                'message': error_msg,
-                'stage': 'aggregations'
-            }
-            self._save_obj.save_err(app)
+            self._handle_processing_exception_(e, 'aggregations', app.get('id', 'unknown'))
             return False
 
         # save aggregations
@@ -264,7 +274,8 @@ def main():
                       app_specific_obj=menas_ag,
                       save_obj=elastic,
                       last_date=last_seen_end_date,
-                      seen_app_ids=seen_ids
+                      seen_app_ids=seen_ids,
+                      skip_exceptions=conf.crawler_skip_exceptions
                       )
 
     sleep_seconds = conf.crawler_sleep_seconds

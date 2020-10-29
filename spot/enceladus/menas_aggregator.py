@@ -158,9 +158,10 @@ class MenasAggregator:
     @staticmethod
     def _aggregate_checkpoints(raw_checkpoints):
         new_checkpoints = {'elements_count': len(raw_checkpoints)}
-        control_values_match = True
+        controls_match = True
         agg_checkpoints = {}
         reference_controls = {}
+        num_controls = 0
         for checkpoint in raw_checkpoints:
             checkpoint['name'] = checkpoint['name'].replace(' ', '')
             process_start_time = parse_date(checkpoint.pop('processStartTime'))
@@ -175,30 +176,42 @@ class MenasAggregator:
 
             controls = checkpoint.pop('controls', None)
 
-            if control_values_match: # we only check control values until first mismatch
-                if not reference_controls: # the first checkpoint's controls are set as a reference
+            if controls_match:  # we only check control values until first mismatch
+                if not reference_controls:  # the first checkpoint's controls are set as a reference
                     for control in controls:
                         reference_controls[control['controlName']] = control['controlValue']
-                else: # reference controls already set in first checkpoint
-                    for control in controls:
-                        # the control values are originally stored as strings
-                        # we assume '123' and '123.0' are distinct values
-                        # as they also should be of the same type and precision
-                        if not reference_controls[control['controlName']] == control['controlValue']:
-                            control_values_match = False
-                            control_values_error = {
-                                'checkpoint': checkpoint,
-                                'controlName':control['controlName'],
-                                'controlValue': control['controlValue'],
-                                'initialControlValue': reference_controls[control['controlName']]
-                            }
-                            new_checkpoints['control_values_error'] = control_values_error
-                            break
+                    num_controls = len(reference_controls)
+                else:  # reference controls already set in first checkpoint
+                    if len(controls) != num_controls:  # different number of controls in checkpoints
+                        controls_match = False
+                        controls_error = {
+                            'checkpoint': checkpoint,
+                            'incorrect_num_controls': True
+                        }
+                        new_checkpoints['controls_error'] = controls_error
+                    else:
+                        for control in controls:
+                            # the control values are originally stored as strings
+                            # we assume '123' and '123.0' are distinct values
+                            # as they also should be of the same type and precision
+                            # If control names are missing it is also an error
+                            if not reference_controls.get(control['controlName'], None) == control['controlValue']:
+                                controls_match = False
+                                controls_error = {
+                                    'checkpoint': checkpoint,
+                                    'controlName':control['controlName'],
+                                    'controlValue': control['controlValue'],
+                                    'initialControlValue': reference_controls.get(control['controlName'], None),
+                                    'incorrect_num_controls': False
+                                }
+                                new_checkpoints['controls_error'] = controls_error
+                                break
 
             # save checkpoint
             agg_checkpoints[checkpoint['name']] = checkpoint
 
         new_checkpoints['agg_checkpoints'] = agg_checkpoints
-        new_checkpoints['control_values_match'] = control_values_match
+        new_checkpoints['controls_match'] = controls_match
+        new_checkpoints['num_controls'] = num_controls
         return new_checkpoints
 
