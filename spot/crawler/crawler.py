@@ -162,7 +162,6 @@ class Crawler:
 
     def process_new_runs(self):
         processing_start = datetime.now()
-        processing_counter = 0
         logger.info(
             f"Fetching new apps, completed since {self._latest_seen_date}")
         apps = self._agg.next_app(min_end_date=self._latest_seen_date,
@@ -182,19 +181,14 @@ class Crawler:
                 if self._name_filter_func(app_name):
                     matched_counter += 1
                     self._process_app(app)
-                    processing_counter += 1
-                    if processing_counter % 10 == 0:
-                        delta_seconds = (datetime.now() -
-                                         processing_start).total_seconds()
-                        per_hour = processing_counter * 3600 / delta_seconds
-                        logger.debug(f"processed {processing_counter} runs "
-                                     f"in {delta_seconds} seconds "
-                                     f"average rate: {per_hour} runs/hour")
-                        self._save_obj.log_indexes_stats()
+                    if matched_counter % 20 == 0:
+                        self.log_processing_stats(processing_start, matched_counter)
 
         self._previous_tabu_set = self._new_tabu_set
+
         logger.info(f"Iteration finished. New apps: {new_counter} "
                     f"matching apps : {matched_counter}")
+        self.log_processing_stats(processing_start, matched_counter)
         logger.debug(f"tabu_set: {self._previous_tabu_set}"
                      f" last date: {self._latest_seen_date}")
 
@@ -219,6 +213,15 @@ class Crawler:
                     self._new_tabu_set.add(app_id)
                     logger.debug(f'added app {app_id} '
                                  f'to tabu list')
+
+    def log_processing_stats(self, start_time, runs_number):
+        delta_seconds = (datetime.now() -
+                         start_time).total_seconds()
+        per_hour = runs_number * 3600 / delta_seconds
+        logger.info(f"processed {runs_number} runs "
+                     f"in {delta_seconds} seconds "
+                     f"average rate: {per_hour} runs/hour")
+        self._save_obj.log_indexes_stats()
 
 
 def main():
