@@ -113,13 +113,12 @@ class Crawler:
         err = {
             'spot': {
                 'time_processed': datetime.now(),
+                'spark_app_id': id,
+                'history_host': self._history_host,
                 'error': {
                     'type': e.__class__.__name__,
                     'message': error_msg,
-                    'stage': 'raw',
-                    'spark_app_id': id,
-                    'history_host': self._history_host
-
+                    'stage': 'raw'
                 }
             }
         }
@@ -127,7 +126,6 @@ class Crawler:
         if not self.skip_exceptions:
             logger.warning('Skipping malformed metadata is disabled')
             raise e
-
 
     def _process_raw(self, app):
         # add data
@@ -137,12 +135,13 @@ class Crawler:
             if self._app_specific_obj is not None:
                 if self._app_specific_obj.is_matching_app(app):
                     app = self._app_specific_obj.enrich(app)
+
+            # save
+            self._save_obj.save_app(app)
+            return True
         except Exception as e:
             self._handle_processing_exception_(e, 'raw', app.get('id', 'unknown'))
             return False
-        # save
-        self._save_obj.save_app(app)
-        return True
 
     def _process_aggs(self, app):
         # get aggregations
@@ -152,14 +151,14 @@ class Crawler:
                     app = self._app_specific_obj.aggregate(app)
 
             aggs = flatten_app(app)
+
+            # save aggregations
+            for agg in aggs:
+                self._save_obj.save_agg(agg)
+            return True
         except Exception as e:
             self._handle_processing_exception_(e, 'aggregations', app.get('id', 'unknown'))
             return False
-
-        # save aggregations
-        for agg in aggs:
-            self._save_obj.save_agg(agg)
-        return True
 
     def _process_app(self, app):
         app['history_host'] = self._history_host

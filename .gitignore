@@ -1,5 +1,6 @@
 *.ini
 output/*
+spot/output/*
 .DS_Store
 *.iml
 *.pyc
