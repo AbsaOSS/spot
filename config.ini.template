@@ -3,6 +3,7 @@ api_base_url = http://localhost:18080/api/v1
 
 [CRAWLER]
 sleep_seconds = 10
+skip_exceptions = False
 
 [SPOT_ELASTICSEARCH]
 elasticsearch_url = http://localhost:9200

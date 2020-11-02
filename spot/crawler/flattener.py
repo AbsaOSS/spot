@@ -311,15 +311,17 @@ def calculate_summary(attempt, aggs):
             unused_core_cost = core_cost - parallel_work
             summary['unused_core_cost'] = unused_core_cost
 
-        props = attempt['environment']['sparkProperties']
-        if 'spark_executor_memory' in props:
-            summary['executor_memory_bytes'] = parse_to_bytes(props['spark_executor_memory'])
+        #props = attempt['environment']['sparkProperties']
+        #if 'spark_executor_memory' in props:
+        #    summary['executor_memory_bytes'] = parse_to_bytes(props['spark_executor_memory'])
 
-        if 'spark_driver_memory' in props:
-            summary['driver_memory_bytes'] = parse_to_bytes(props['spark_driver_memory'])
+        #if 'spark_driver_memory' in props:
+        #    summary['driver_memory_bytes'] = parse_to_bytes(props['spark_driver_memory'])
 
         if aggs['allexecutors']['executors']['maxMemory']['sum'] != 0:
-            storage_memory_usage = aggs['stages']['inputBytes']['max'] \
+            est_peak_memory_usage = aggs['stages']['inputBytes']['max'] + aggs['stages']['outputBytes']['max']
+            summary['est_peak_memory_usage'] = est_peak_memory_usage
+            storage_memory_usage =  est_peak_memory_usage\
                                    / aggs['allexecutors']['executors']['maxMemory']['sum']
             summary['storage_memory_usage'] = storage_memory_usage
 

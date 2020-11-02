@@ -15,7 +15,7 @@ import logging
 from datetime import datetime
 
 import spot.crawler.history_api as history_api
-from spot.crawler.commons import get_last_attempt
+from spot.crawler.commons import get_last_attempt, parse_to_bytes, string_to_bool, parse_to_ms
 import spot.utils.setup_logger
 
 logger = logging.getLogger(__name__)
@@ -61,11 +61,52 @@ _remove_keys_dict = {
         'spark_org_apache_hadoop_yarn_server_webproxy_amfilter'
         '_AmIpFilter_param_PROXY_URI_BASES',
         'spark_yarn_app_container_log_dir',
+        'spark_history_kerberos_keytab',
+        'spark_org_apache_hadoop_yarn_server_webproxy_amfilter_AmIpFilter_param_RM_HA_URLS',
+        'spark_history_kerberos_principal'
 
     ],
     'runtime': [
         'javaHome'
     ]
+}
+
+# dict of cast functions to apply to each Spark property
+_cast_sparkProperties_dict = {
+    'spark_port_maxRetries': int,
+    'spark_executor_instances': int,
+    'spark_driver_cores': int,
+    'spark_executor_cores': int,
+    'sparkProperties.spark_dynamicAllocation_maxExecutors': int,
+    'spark_dynamicAllocation_minExecutors': int,
+    'spark_yarn_maxAppAttempts': int,
+
+    'spark_dynamicAllocation_executorAllocationRatio': float,
+    'spark_memory_fraction': float,
+
+    'spark_eventLog_enabled': string_to_bool,
+    'spark_logConf': string_to_bool,
+    'spark_hadoop_yarn_timeline-service_enabled': string_to_bool,
+    'spark_dynamicAllocation_enabled': string_to_bool,
+    'spark_history_fs_cleaner_enabled': string_to_bool,
+    'spark.rdd.compress': string_to_bool,
+    'spark_shuffle_service_enabled': string_to_bool,
+    'spark_speculation': string_to_bool,
+    'spark_sql_adaptive_enabled': string_to_bool,
+    'spark_sql_hive_convertMetastoreParquet': string_to_bool,
+    'spark_sql_parquet_writeLegacyFormat': string_to_bool,
+    'spark_history_kerberos_enabled': string_to_bool,
+
+    'spark_driver_memory': parse_to_bytes,
+    'spark_executor_memory': parse_to_bytes,
+    'spark_yarn_executor_memoryOverhead': parse_to_bytes,
+    'sparkProperties.spark_driver_maxResultSize': parse_to_bytes,
+    'spark_sql_adaptive_shuffle_targetPostShuffleInputSize': parse_to_bytes,
+    'spark_sql_autoBroadcastJoinThreshold': parse_to_bytes,
+
+    'spark_sql_broadcastTimeout': parse_to_ms,
+    'spark_executor_heartbeatInterval': parse_to_ms,
+    'spark_sql_broadcastTimeout': parse_to_ms,
 }
 
 _dt_format = "%Y-%m-%dT%H:%M:%S.%f%Z"
@@ -77,12 +118,14 @@ class HistoryAggregator:
                  spark_history_base_url,
                  remove_keys_dict=_remove_keys_dict,
                  time_keys_dict=_time_keys_dict,
+                 cast_sparkProperties_dict = _cast_sparkProperties_dict,
                  dt_format=_dt_format,
                  last_attempt_only=False):
         logger.debug('Initialized hist aggregator')
         self._hist = history_api.SparkHistory(spark_history_base_url)
         self._remove_keys_dict = remove_keys_dict
         self._time_keys_dict = time_keys_dict
+        self.cast_sparkProperties_dict = cast_sparkProperties_dict
         self._dt_format = dt_format
         self.last_attempt_only = last_attempt_only
 
@@ -110,15 +153,14 @@ class HistoryAggregator:
             return dt.isoformat(sep='T', timespec='milliseconds') + 'GMT'
         return None
 
-    @staticmethod
-    def _tuple_list_to_valid_mongo_dict(alist):
+    def _process_sparkProperties(self, alist):
+        """Transform list of tuples to json dict and cast specific values."""
         result = {}
-        for atuple in alist:
-            key = atuple[0].replace('.', '_')
-            value = atuple[1]
-            if isinstance(value, str):
-                if value.isdigit():
-                    value = int(value)
+        for key, value in alist:
+            key = key.replace('.', '_')
+            if key in self.cast_sparkProperties_dict:
+                value = self.cast_sparkProperties_dict[key](value)
+
             result[key] = value
         return result
 
@@ -143,7 +185,7 @@ class HistoryAggregator:
         environment = self._hist.get_environment(app_id,
                                                  attempt_id)
 
-        spark_props = self._tuple_list_to_valid_mongo_dict(
+        spark_props = self._process_sparkProperties(
             environment.get('sparkProperties'))
         self._remove_keys(spark_props, 'sparkProperties')
         environment['sparkProperties'] = spark_props
