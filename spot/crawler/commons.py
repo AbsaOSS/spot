@@ -22,15 +22,6 @@ logger = logging.getLogger(__name__)
 HDFS_block_size = (128 * 1024 * 1024)
 
 size_units = {
-    'B': 1,
-    'K': 1024,
-    'M': 1024 ** 2,
-    'G': 1024 ** 3,
-    'T': 1024 ** 4,
-    'P': 1024 ** 5
-}
-
-size_units2 = {
     'k': 1024,
     'm': 1024 ** 2,
     'g': 1024 ** 3,
@@ -65,26 +56,15 @@ def bytes_to_hdfs_block(size_bytes):
     return math.ceil(size_bytes / HDFS_block_size)
 
 
-#def parse_to_bytes(size_str):
-#    # see units at https://spark.apache.org/docs/latest/configuration.html#spark-properties
-#    stripped = size_str.strip().upper()
-#    value = stripped[:-1]
-#    units = stripped[-1]
-#    if value.isdigit() and (units in size_units):
-#        return int(value) * size_units[units]
-#    else:
-#        logger.warning(f'Failed to parse string {size_str} to bytes')
-#        return None
-
 def parse_to_bytes(size_str):
     """ Parse size string with units into bytes, default unit is bytes when not specified."""
     # see units at https://spark.apache.org/docs/latest/configuration.html#spark-properties
     stripped = size_str.strip().lower()
     multiplier = 1
-    for unit in size_units2.keys():
+    for unit in size_units.keys():
         if stripped.endswith(unit):
             stripped = stripped[:-len(unit)]
-            multiplier = size_units2[unit]
+            multiplier = size_units[unit]
             break
     if stripped.isdigit():
         return int(stripped) * multiplier
@@ -134,4 +114,6 @@ def bytes_to_gb(size_bytes):
 
 
 def string_to_bool(s):
-    return s.lower() in ['true', '1', 'y', 'yes']
+    if s.lower() in ['true', '1', 'y', 'yes']:
+        return True
+    return None
