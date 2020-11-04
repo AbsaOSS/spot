@@ -87,9 +87,7 @@ def parse_to_ms(time_str):
         return int(stripped) * multiplier
     else:
         logger.warning(f'Failed to parse string {time_str} to milliseconds')
-        return None
-
-
+        return
 
 
 def sizeof_fmt(num, suffix='B'):
@@ -116,4 +114,4 @@ def bytes_to_gb(size_bytes):
 def string_to_bool(s):
     if s.lower() in ['true', '1', 'y', 'yes']:
         return True
-    return None
+    return

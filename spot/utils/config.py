@@ -78,10 +78,9 @@ class SpotConfig(Config):
 
     @property
     def crawler_skip_exceptions(self):
-        skip_exceptions = self.get_boolean('CRAWLER', 'skip_exceptions')
-        if skip_exceptions is None:
-            skip_exceptions = False
-        return skip_exceptions
+        if self.get_boolean('CRAWLER', 'skip_exceptions'):
+            return True
+        return False
 
     @property
     def elasticsearch_url(self):
