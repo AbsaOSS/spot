@@ -2,7 +2,17 @@
 api_base_url = http://localhost:18080/api/v1
 
 [CRAWLER]
+# Time between pulling of new completed runs from Spark History
 sleep_seconds = 10
+
+# When processing a particular run causes an exception
+# (e.g. missing critical metadata, external services errors, etc.)
+# the error message is logged into err_index.
+# The setting skip_exceptions defines whether to terminate Crawler process
+# or skip the malformed run and continue.
+# Skipping is recommended for production deployment,
+# while the opposite is recommended for debugging.
+skip_exceptions = False
 
 [SPOT_ELASTICSEARCH]
 elasticsearch_url = http://localhost:9200
@@ -17,6 +27,8 @@ output_dir = output
 log_level = debug
 
 [MENAS]
-api_base_url = http://localhost:8080/menas/api
-username = user
-password = changeme
+# Menas provides additional metadata for Enceladus jobs.
+# It is optional.
+# api_base_url = http://localhost:8080/menas/api
+# username = user
+# password = changeme

@@ -91,17 +91,41 @@ class Crawler:
                  app_specific_obj=None,
                  save_obj=DefaultSaver(),
                  last_date=None,
-                 seen_app_ids=set()):
+                 seen_app_ids=set(),
+                 skip_exceptions=False):
         self._agg = HistoryAggregator(spark_history_url)
         self._history_host = urlparse(spark_history_url).hostname
         self._name_filter_func = name_filter_func
         self._save_obj = save_obj
         self._app_specific_obj = app_specific_obj
+        self.skip_exceptions = skip_exceptions
+
         self._latest_seen_date = last_date
         # list of apps with the same last date, seen in the previous iteration
         self._previous_tabu_set = seen_app_ids
         # tabu list being constructed for the next iteration
         self._new_tabu_set = set()
+
+    def _handle_processing_exception_(self, e, stage_name, id='unknown'):
+        error_msg = str(e)
+        logger.warning(
+            f"Failed to process {stage_name} for app: {id} error: {error_msg}")
+        err = {
+            'spot': {
+                'time_processed': datetime.now(),
+                'spark_app_id': id,
+                'history_host': self._history_host,
+                'error': {
+                    'type': e.__class__.__name__,
+                    'message': error_msg,
+                    'stage': 'raw'
+                }
+            }
+        }
+        self._save_obj.save_err(err)
+        if not self.skip_exceptions:
+            logger.warning('Skipping malformed metadata is disabled')
+            raise e
 
     def _process_raw(self, app):
         # add data
@@ -111,20 +135,13 @@ class Crawler:
             if self._app_specific_obj is not None:
                 if self._app_specific_obj.is_matching_app(app):
                     app = self._app_specific_obj.enrich(app)
+
+            # save
+            self._save_obj.save_app(app)
+            return True
         except Exception as e:
-            error_msg = str(e)
-            logger.warning(
-                f"Failed to process raw for app: {app.get('id')} error: {error_msg}")
-            app['spot']['error'] = {
-                'type': e.__class__.__name__,
-                'message': error_msg,
-                'stage': 'raw'
-            }
-            self._save_obj.save_err(app)
+            self._handle_processing_exception_(e, 'raw', app.get('id', 'unknown'))
             return False
-        # save
-        self._save_obj.save_app(app)
-        return True
 
     def _process_aggs(self, app):
         # get aggregations
@@ -134,22 +151,14 @@ class Crawler:
                     app = self._app_specific_obj.aggregate(app)
 
             aggs = flatten_app(app)
-        except Exception as e:
-            error_msg = str(e)
-            logger.warning(
-                f"Failed to process agg for app: {app.get('id')} error: {error_msg}")
-            app['spot']['error'] = {
-                'type': e.__class__.__name__,
-                'message': error_msg,
-                'stage': 'aggregations'
-            }
-            self._save_obj.save_err(app)
-            return False
 
-        # save aggregations
-        for agg in aggs:
-            self._save_obj.save_agg(agg)
-        return True
+            # save aggregations
+            for agg in aggs:
+                self._save_obj.save_agg(agg)
+            return True
+        except Exception as e:
+            self._handle_processing_exception_(e, 'aggregations', app.get('id', 'unknown'))
+            return False
 
     def _process_app(self, app):
         app['history_host'] = self._history_host
@@ -162,7 +171,6 @@ class Crawler:
 
     def process_new_runs(self):
         processing_start = datetime.now()
-        processing_counter = 0
         logger.info(
             f"Fetching new apps, completed since {self._latest_seen_date}")
         apps = self._agg.next_app(min_end_date=self._latest_seen_date,
@@ -182,19 +190,14 @@ class Crawler:
                 if self._name_filter_func(app_name):
                     matched_counter += 1
                     self._process_app(app)
-                    processing_counter += 1
-                    if processing_counter % 10 == 0:
-                        delta_seconds = (datetime.now() -
-                                         processing_start).total_seconds()
-                        per_hour = processing_counter * 3600 / delta_seconds
-                        logger.debug(f"processed {processing_counter} runs "
-                                     f"in {delta_seconds} seconds "
-                                     f"average rate: {per_hour} runs/hour")
-                        self._save_obj.log_indexes_stats()
+                    if matched_counter % 20 == 0:
+                        self.log_processing_stats(processing_start, matched_counter)
 
         self._previous_tabu_set = self._new_tabu_set
+
         logger.info(f"Iteration finished. New apps: {new_counter} "
                     f"matching apps : {matched_counter}")
+        self.log_processing_stats(processing_start, matched_counter)
         logger.debug(f"tabu_set: {self._previous_tabu_set}"
                      f" last date: {self._latest_seen_date}")
 
@@ -219,6 +222,15 @@ class Crawler:
                     self._new_tabu_set.add(app_id)
                     logger.debug(f'added app {app_id} '
                                  f'to tabu list')
+
+    def log_processing_stats(self, start_time, runs_number):
+        delta_seconds = (datetime.now() -
+                         start_time).total_seconds()
+        per_hour = runs_number * 3600 / delta_seconds
+        logger.info(f"processed {runs_number} runs "
+                     f"in {delta_seconds} seconds "
+                     f"average rate: {per_hour} runs/hour")
+        self._save_obj.log_indexes_stats()
 
 
 def main():
@@ -261,7 +273,8 @@ def main():
                       app_specific_obj=menas_ag,
                       save_obj=elastic,
                       last_date=last_seen_end_date,
-                      seen_app_ids=seen_ids
+                      seen_app_ids=seen_ids,
+                      skip_exceptions=conf.crawler_skip_exceptions
                       )
 
     sleep_seconds = conf.crawler_sleep_seconds

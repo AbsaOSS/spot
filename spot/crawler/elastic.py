@@ -52,48 +52,24 @@ class Elastic:
         logger.debug("Initializing elasticsearch, checking indexes")
         self.log_indexes_stats()
 
-    def _process_elasticsearch_error(self, res):
-        if res.get('status') == 409:
-            logger.warning(
-                f'Doc already indexed: {res.get("error").get("reason")}')
-        else:
-            logger.warning(res.get('error').get('reason'))
-        es_error = res.get("error")
-        message = es_error.get("reason")
-        err_type = es_error.get("type")
-        item = {
-            'spot': {
-                'time_processed': datetime.now(),
-                'error': {
-                    'type': f"ElasticsearchError: {err_type}",
-                    'message': message,
-                    'es_error': es_error
-                }
-            }
-        }
-        res = self._es.index(index=self._err_index,
-                             op_type='create',
-                             body=item,
-                             request_timeout=REQUEST_TIMEOUT)
-
     def _insert_item(self, index, uid, item):
         if uid is not None:
             res = self._es.index(index=index,
                                  op_type='create',
                                  id=uid,
                                  body=item,
-                                 ignore=[400, 409],
+                                 ignore=[],
                                  request_timeout=REQUEST_TIMEOUT)
         else:
             res = self._es.index(index=index,
                                  op_type='create',
                                  body=item,
-                                 ignore=[400, 409],
+                                 ignore=[],
                                  request_timeout=REQUEST_TIMEOUT)
         if res.get('result') == 'created':
             logger.debug(f'{uid} added to {index}')
-        else:
-            self._process_elasticsearch_error(res)
+        # else:
+        #    self._process_elasticsearch_error(res)
 
     def save_app(self, app):
         uid = app.get('id')

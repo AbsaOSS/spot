@@ -21,12 +21,29 @@ logger = logging.getLogger(__name__)
 
 HDFS_block_size = (128 * 1024 * 1024)
 
-units_dict = {
-    'B': 1,
-    'K': 1024,
-    'M': 1024 ** 2,
-    'G': 1024 ** 3,
-    'T': 1024 ** 4
+size_units = {
+    'k': 1024,
+    'm': 1024 ** 2,
+    'g': 1024 ** 3,
+    't': 1024 ** 4,
+    'p': 1024 ** 5,
+
+    'kb': 1024,
+    'mb': 1024 ** 2,
+    'gb': 1024 ** 3,
+    'tb': 1024 ** 4,
+    'pb': 1024 ** 5,
+
+    'b': 1,
+}
+
+time_units = {
+    'ms': 1,
+    's': 1000,
+    'm': 60 * 1000,
+    'min': 60 * 1000,
+    'h': 60 * 60 * 1000,
+    'd': 24 * 60 * 60 * 1000
 }
 
 
@@ -40,14 +57,37 @@ def bytes_to_hdfs_block(size_bytes):
 
 
 def parse_to_bytes(size_str):
-    stripped = size_str.strip().upper()
-    value = stripped[:-1]
-    units = stripped[-1]
-    if value.isdigit() and (units in units_dict):
-        return int(value) * units_dict[units]
+    """ Parse size string with units into bytes, default unit is bytes when not specified."""
+    # see units at https://spark.apache.org/docs/latest/configuration.html#spark-properties
+    stripped = size_str.strip().lower()
+    multiplier = 1
+    for unit in size_units.keys():
+        if stripped.endswith(unit):
+            stripped = stripped[:-len(unit)]
+            multiplier = size_units[unit]
+            break
+    if stripped.isdigit():
+        return int(stripped) * multiplier
     else:
         logger.warning(f'Failed to parse string {size_str} to bytes')
         return None
+
+
+def parse_to_ms(time_str):
+    """ Parse time string with units into ms, default unit is seconds when not specified."""
+    # see units at https://spark.apache.org/docs/latest/configuration.html#spark-properties
+    stripped = time_str.strip().lower()
+    multiplier = 1000
+    for unit in time_units.keys():
+        if stripped.endswith(unit):
+            stripped = stripped[:-len(unit)]
+            multiplier = time_units[unit]
+            break
+    if stripped.isdigit():
+        return int(stripped) * multiplier
+    else:
+        logger.warning(f'Failed to parse string {time_str} to milliseconds')
+        return
 
 
 def sizeof_fmt(num, suffix='B'):
@@ -69,3 +109,9 @@ def cast_string_to_value(str_val):
 
 def bytes_to_gb(size_bytes):
     return size_bytes / (1024 * 1024 * 1024)
+
+
+def string_to_bool(s):
+    if s.lower() in ['true', '1', 'y', 'yes']:
+        return True
+    return

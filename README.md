@@ -161,9 +161,9 @@ The Enceladus module provides integration capabilities for Spot usage with [Ence
     - Elasticsearch and Kibana
     - Spark History (2.4 and later recommended)
     - (Optional) [Menas](https://github.com/AbsaOSS/enceladus) (2.1.0 and later recommended) Requires username and password
-- Create configuration: copy config.ini.template to config.ini and set parameters from the above step
-    - For new deployment set raw_index and agg_index to new index names which do not exist in elasticsearch
-- Configure logging in logging_confg.ini (see [Logging](https://docs.python.org/2/library/logging.config.html#configuration-file-format))
+- Create configuration: in /spot/config copy config.ini.template to config.ini and set parameters from the above step
+    - For new deployment set raw_index agg_index and err_index to new index names which do not exist in elasticsearch
+- Configure logging in /spot/config/logging_confg.ini (see [Logging](https://docs.python.org/2/library/logging.config.html#configuration-file-format))
 
 
 ### Running Crawler
@@ -182,3 +182,9 @@ This will start the main loop of the crawler. It gets new completed apps, proces
 [imported to Kibana](https://www.elastic.co/guide/en/kibana/current/managing-saved-objects.html#:~:text=Importedit,already%20in%20Kibana%20are%20overwritten.). 
 For example, there is a [demo dashboard](spot/kibana/spot_demo.ndjson) demonstrating basic statistics of Spark applications.
 
+### Common issues
+<b>Issue</b>: RequestError(400, 'illegal_argument_exception', 'Limit of total fields [1000] in index [<spot_index>] has been exceeded')
+
+Solution: The limit can be increased using Elasticsearch query:
+PUT /<spot_index>/_settings
+{"index.mapping.total_fields.limit": 2000}
