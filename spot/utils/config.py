@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 class Config(object):
-    _default_config_path = '../../config.ini'
+    _default_config_path = '../config/config.ini'
 
     def __init__(self, config_path=_default_config_path):
         if config_path == Config._default_config_path:
