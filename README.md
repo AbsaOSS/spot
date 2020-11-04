@@ -161,9 +161,9 @@ The Enceladus module provides integration capabilities for Spot usage with [Ence
     - Elasticsearch and Kibana
     - Spark History (2.4 and later recommended)
     - (Optional) [Menas](https://github.com/AbsaOSS/enceladus) (2.1.0 and later recommended) Requires username and password
-- Create configuration: copy config.ini.template to config.ini and set parameters from the above step
-    - For new deployment set raw_index and agg_index to new index names which do not exist in elasticsearch
-- Configure logging in logging_confg.ini (see [Logging](https://docs.python.org/2/library/logging.config.html#configuration-file-format))
+- Create configuration: in /spot/config copy config.ini.template to config.ini and set parameters from the above step
+    - For new deployment set raw_index agg_index and err_index to new index names which do not exist in elasticsearch
+- Configure logging in /spot/config/logging_confg.ini (see [Logging](https://docs.python.org/2/library/logging.config.html#configuration-file-format))
 
 
 ### Running Crawler
