@@ -16,7 +16,7 @@ from datetime import datetime
 
 from spot.enceladus.menas_api import MenasApi
 import spot.enceladus.classification as clsf
-from spot.crawler.commons import cast_string_to_value
+from spot.crawler.commons import cast_string_to_value, get_attribute
 import spot.utils.setup_logger
 
 
@@ -214,4 +214,62 @@ class MenasAggregator:
         new_checkpoints['controls_match'] = controls_match
         new_checkpoints['num_controls'] = num_controls
         return new_checkpoints
+
+    def post_aggregate(self, agg):
+        """ Process aggreagations of Enceladus runs.
+        This method is called on each aggregation after enrich(app), aggregate(app) andflatten(app).
+        """
+        post_aggregations = {}
+        input_in_memory = get_attribute(agg, ['attempt','aggs', 'stages', 'inputBytes', 'max'])
+        if input_in_memory is None:
+            logger.warning(f"Missing attempt.aggs.stages.inputBytes.max in "
+                           f"app  {agg.get('id', 'missing_app_id')} "
+                           f"attempt {get_attribute(agg, ['attempt', 'attemptId'])}")
+            return agg
+        output_in_memory = get_attribute(agg, ['attempt','aggs', 'stages', 'outputBytes', 'max'])
+        est_peak_memory = get_attribute(agg, ['attempt', 'aggs', 'summary', 'est_peak_memory_usage'])
+
+        additional_info = get_attribute(agg, ['attempt', 'app_specific_data', 'enceladus_run', 'controlMeasure', 'metadata',
+                                       'additionalInfo'])
+
+        if additional_info is None:
+            logger.warning(f"Missing attempt.app_specific_data.enceladus_run.controlMeasure.metadata.additionalInfo in "
+                           f"app  {agg.get('id', 'missing_app_id')} "
+                           f"attempt {get_attribute(agg, ['attempt', 'attemptId'])}")
+            return agg
+
+        enceladus_type = agg['app_specific_data']['classification']['type']
+        input_in_storage = None
+        output_in_storage = None
+
+        if enceladus_type == 'standardization':
+            input_in_storage = additional_info.get('std_input_data_size', None)
+            output_in_storage = additional_info.get('std_output_data_size', None)
+        elif enceladus_type == 'conformance':
+            input_in_storage = additional_info.get('conform_input_data_size', None)
+            output_in_storage = additional_info.get('conform_output_data_size', None)
+        elif enceladus_type == 'standardization&conformance':
+            input_in_storage = additional_info.get('std_input_data_size', None)
+            output_in_storage = additional_info.get('conform_output_data_size', None)
+        else:
+            logger.error(f"Unrecognised Enceladus app type: {enceladus_type}")
+            return agg
+
+        if input_in_storage and input_in_memory!= 0 and input_in_storage != 0:
+            post_aggregations['input_deserialization_factor'] = input_in_memory /input_in_storage
+            post_aggregations['peak_to_input_memory_factor'] = est_peak_memory/input_in_storage
+
+        if output_in_storage and output_in_memory != 0 and output_in_storage != 0:
+            post_aggregations['output_deserialization_factor'] = output_in_memory /output_in_storage
+            post_aggregations['peak_to_output_memory_factor'] = est_peak_memory/output_in_storage
+
+        agg['attempt']['aggs']['summary']['postprocessing'] = post_aggregations
+        return agg
+
+
+
+
+
+
+
 

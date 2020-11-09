@@ -115,3 +115,19 @@ def string_to_bool(s):
     if s.lower() in ['true', '1', 'y', 'yes']:
         return True
     return
+
+
+def get_attribute(doc, path_list):
+    if doc is None:
+        return
+
+    if path_list:  # path_list not empty
+        next_attribute = path_list.pop(0)
+        if isinstance(doc, dict) and next_attribute in doc:
+            return get_attribute(doc[next_attribute], path_list)
+        else:
+            return
+    else:  # path_list is empty
+        return doc
+
+
