@@ -12,26 +12,16 @@
 # limitations under the License.
 
 import logging
-from datetime import datetime
 
 from spot.enceladus.menas_api import MenasApi
 import spot.enceladus.classification as clsf
-from spot.crawler.commons import cast_string_to_value, get_attribute
+from spot.crawler.commons import cast_string_to_value, get_attribute, bytes_to_hdfs_block, parse_date
 import spot.utils.setup_logger
 
 
 logger = logging.getLogger(__name__)
 
-
-# Checkpoints may have different datetime formats
-def parse_date(text):
-    for fmt in ["%d-%m-%Y %H:%M:%S %z", "%d-%m-%Y %H:%M:%S"]:
-        try:
-            return datetime.strptime(text, fmt)
-        except ValueError:
-            pass
-    logger.warning(f"No valid date format found for {text}")
-    return
+date_formats = ["%d-%m-%Y %H:%M:%S %z", "%d-%m-%Y %H:%M:%S"]
 
 
 def _match_values(left, right):
@@ -84,7 +74,8 @@ class MenasAggregator:
         additional_info = run['controlMeasure']['metadata']['additionalInfo']
         for key, value in additional_info.items():
             additional_info[key] = cast_string_to_value(value)
-        start_date_time = parse_date(run.get('startDateTime'))
+        start_date_time = parse_date(run.get('startDateTime'), formats=date_formats)
+        run['startDateTime']= start_date_time
         return run
 
     def get_runs(self, app_id, clfsion):
@@ -164,8 +155,8 @@ class MenasAggregator:
         num_controls = 0
         for checkpoint in raw_checkpoints:
             checkpoint['name'] = checkpoint['name'].replace(' ', '')
-            process_start_time = parse_date(checkpoint.pop('processStartTime'))
-            process_end_time = parse_date(checkpoint.pop('processEndTime'))
+            process_start_time = parse_date(checkpoint.pop('processStartTime'), formats=date_formats)
+            process_end_time = parse_date(checkpoint.pop('processEndTime'), formats=date_formats)
 
             # if the times cannot be casted correctly, the fields are skipped, not to interfere with ES schema
             if (process_start_time is not None) and (process_end_time is not None):
@@ -255,21 +246,24 @@ class MenasAggregator:
             logger.error(f"Unrecognised Enceladus app type: {enceladus_type}")
             return agg
 
-        if input_in_storage and input_in_memory!= 0 and input_in_storage != 0:
-            post_aggregations['input_deserialization_factor'] = input_in_memory /input_in_storage
-            post_aggregations['peak_to_input_memory_factor'] = est_peak_memory/input_in_storage
+        if input_in_storage:
+            post_aggregations['input_in_storage_HDFS_blocks'] = bytes_to_hdfs_block(input_in_storage)
+            if input_in_memory!= 0 and input_in_storage != 0:
+                post_aggregations['input_deserialization_factor'] = input_in_memory /input_in_storage
+                post_aggregations['peak_to_input_memory_factor'] = est_peak_memory / input_in_storage
 
-        if output_in_storage and output_in_memory != 0 and output_in_storage != 0:
-            post_aggregations['output_deserialization_factor'] = output_in_memory /output_in_storage
-            post_aggregations['peak_to_output_memory_factor'] = est_peak_memory/output_in_storage
+        if output_in_storage:
+            post_aggregations['output_in_storage_HDFS_blocks'] = bytes_to_hdfs_block(output_in_storage)
+            if output_in_memory != 0 and output_in_storage != 0:
+                post_aggregations['output_deserialization_factor'] = output_in_memory / output_in_storage
+                post_aggregations['peak_to_output_memory_factor'] = est_peak_memory / output_in_storage
+
+        if input_in_storage and output_in_storage and input_in_storage != 0 and output_in_storage != 0:
+            post_aggregations['output_to_input_storage_size_ratio'] = output_in_storage / input_in_storage
+
 
         agg['attempt']['aggs']['summary']['postprocessing'] = post_aggregations
         return agg
-
-
-
-
-
 
 
 
