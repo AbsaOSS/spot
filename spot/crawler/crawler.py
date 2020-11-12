@@ -132,7 +132,7 @@ class Crawler:
         try:
             self._agg.add_app_data(app)
             app = default_enrich(app)
-            if self._app_specific_obj is not None:
+            if self._app_specific_obj:
                 if self._app_specific_obj.is_matching_app(app):
                     app = self._app_specific_obj.enrich(app)
 
@@ -146,7 +146,7 @@ class Crawler:
     def _process_aggs(self, app):
         # get aggregations
         try:
-            if self._app_specific_obj is not None:
+            if self._app_specific_obj:
                 if self._app_specific_obj.is_matching_app(app):
                     app = self._app_specific_obj.aggregate(app)
 
@@ -154,7 +154,7 @@ class Crawler:
 
             # save aggregations
             for agg in aggs:
-                if self._app_specific_obj is not None:
+                if self._app_specific_obj:
                     if self._app_specific_obj.is_matching_app(app):
                         agg = self._app_specific_obj.post_aggregate(agg)
                 self._save_obj.save_agg(agg)

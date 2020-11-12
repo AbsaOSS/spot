@@ -140,7 +140,6 @@ class MenasAggregator:
         for attempt in app.get('attempts'):
             run = attempt.get('app_specific_data', None).get('enceladus_run', None)
             if run is not None:
-
                 # pop  original checkpoints array from run
                 raw_checkpoints = run.get('controlMeasure', None).pop('checkpoints', None)
                 if raw_checkpoints is not None:
@@ -210,7 +209,7 @@ class MenasAggregator:
 
     def post_aggregate(self, agg):
         """ Process aggreagations of Enceladus runs.
-        This method is called on each aggregation after enrich(app), aggregate(app) andflatten(app).
+        This method is called on each aggregation after enrich(app), aggregate(app) and flatten(app).
         """
         post_aggregations = {}
         input_in_memory = get_attribute(agg, ['attempt','aggs', 'stages', 'inputBytes', 'max'])
@@ -250,7 +249,7 @@ class MenasAggregator:
 
         if input_in_storage:
             post_aggregations['input_in_storage_HDFS_blocks'] = bytes_to_hdfs_block(input_in_storage)
-            if input_in_memory!= 0 and input_in_storage != 0:
+            if input_in_memory != 0 and input_in_storage != 0:
                 post_aggregations['input_deserialization_factor'] = input_in_memory /input_in_storage
                 post_aggregations['peak_to_input_memory_factor'] = est_peak_memory / input_in_storage
 

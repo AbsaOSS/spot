@@ -129,7 +129,7 @@ def string_to_bool(s):
     lower = s.lower()
     if lower in ['true', '1', 'y', 'yes']:
         return True
-    elif lower in ['false', '0', 'n', 'no']:
+    if lower in ['false', '0', 'n', 'no']:
         return False
     logger.warning(f"Failed to parse string to bool: {s}")
     return

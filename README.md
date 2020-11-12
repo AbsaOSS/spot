@@ -162,8 +162,8 @@ The Enceladus module provides integration capabilities for Spot usage with [Ence
     - Spark History (2.4 and later recommended)
     - (Optional) [Menas](https://github.com/AbsaOSS/enceladus) (2.1.0 and later recommended) Requires username and password
 - Create configuration: in /spot/config copy config.ini.template to config.ini and set parameters from the above step
-    - For new deployment set new index names which do not exist in elasticsearch. 
-    In order to be compatible with provided [Kibana objects](spot/kibana/) the indexes should comply to the patterns:  
+    - For a new deployment set new index names which do not exist in elasticsearch. 
+    In order to be compatible with the provided [Kibana objects](spot/kibana/) the indexes should match the following patterns:  
     raw_index=spot\_raw\_\<cluster_name\>\_\<id\>,  
     agg_index=spot\_agg\_\<cluster_name\>\_\<id\>,  
     err_index=spot\_err\_\<cluster_name\>\_\<id\>  
@@ -171,11 +171,11 @@ The Enceladus module provides integration capabilities for Spot usage with [Ence
 
 ### Multicluster configuration
 It is possible to monitor multiple clusters (each with its own Spark History server) with Spot. 
-In such case there is a separate Spot crawler process for each Spark History server (and optionally Menas). 
-Each such process writes to its own set of indexes within the same elasticsearch instance. 
+For this scenario a separate Spot crawler process needs to be running for each Spark History server (and optionally Menas). 
+Each process writes to its own set of indexes within the same elasticsearch instance. 
 If the index names follow the defined pattern (spot\_\<raw/agg/err\>\_\<cluster_name\>\_\<id\>) 
 the data can be visualized in Kibana using the setup provided in [Kibana directory](spot/kibana/). 
-There the data can be filtered by history_host.keyword when needed.
+There the data can be filtered by history_host.keyword if required.
 
 ### Running Crawler
 `cd spot/crawler`

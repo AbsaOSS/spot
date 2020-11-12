@@ -70,7 +70,7 @@ def _old_get_classification(name):
             'dataset': values[2],
             'dataset_version': int(values[3]) if values[3].isdigit() else values[3],
             'info_date': values[4],
-            'info_date_casted': _info_date_str_to_datetime(values[4]),
+            'info_date_casted': parse_date(values[4], formats=info_date_formats),
             'info_version': int(values[5]) if values[5].isdigit() else values[5]
         }
     return classification
