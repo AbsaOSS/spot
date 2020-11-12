@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 date_formats = ["%d-%m-%Y %H:%M:%S %z", "%d-%m-%Y %H:%M:%S"]
 
 
+
 def _match_values(left, right):
     if left == right:
         return True
@@ -36,7 +37,7 @@ def _match_run(run, app_id, clfsion):
     dataset_name = run.get('dataset')
     dataset_version = run.get('datasetVersion')
     metadata = run.get('controlMeasure').get('metadata')
-    # info_date = metadata.get('informationDate')
+
     info_version = metadata.get('version')
     add_info = metadata.get('additionalInfo')
     app_version = add_info.get('std_enceladus_version')
@@ -139,6 +140,7 @@ class MenasAggregator:
         for attempt in app.get('attempts'):
             run = attempt.get('app_specific_data', None).get('enceladus_run', None)
             if run is not None:
+
                 # pop  original checkpoints array from run
                 raw_checkpoints = run.get('controlMeasure', None).pop('checkpoints', None)
                 if raw_checkpoints is not None:
@@ -260,7 +262,6 @@ class MenasAggregator:
 
         if input_in_storage and output_in_storage and input_in_storage != 0 and output_in_storage != 0:
             post_aggregations['output_to_input_storage_size_ratio'] = output_in_storage / input_in_storage
-
 
         agg['attempt']['aggs']['summary']['postprocessing'] = post_aggregations
         return agg
