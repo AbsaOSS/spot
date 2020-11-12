@@ -132,7 +132,7 @@ class Crawler:
         try:
             self._agg.add_app_data(app)
             app = default_enrich(app)
-            if self._app_specific_obj is not None:
+            if self._app_specific_obj:
                 if self._app_specific_obj.is_matching_app(app):
                     app = self._app_specific_obj.enrich(app)
 
@@ -146,7 +146,7 @@ class Crawler:
     def _process_aggs(self, app):
         # get aggregations
         try:
-            if self._app_specific_obj is not None:
+            if self._app_specific_obj:
                 if self._app_specific_obj.is_matching_app(app):
                     app = self._app_specific_obj.aggregate(app)
 
@@ -154,6 +154,9 @@ class Crawler:
 
             # save aggregations
             for agg in aggs:
+                if self._app_specific_obj:
+                    if self._app_specific_obj.is_matching_app(app):
+                        agg = self._app_specific_obj.post_aggregate(agg)
                 self._save_obj.save_agg(agg)
             return True
         except Exception as e:
@@ -197,7 +200,8 @@ class Crawler:
 
         logger.info(f"Iteration finished. New apps: {new_counter} "
                     f"matching apps : {matched_counter}")
-        self.log_processing_stats(processing_start, matched_counter)
+        if matched_counter > 0:
+            self.log_processing_stats(processing_start, matched_counter)
         logger.debug(f"tabu_set: {self._previous_tabu_set}"
                      f" last date: {self._latest_seen_date}")
 

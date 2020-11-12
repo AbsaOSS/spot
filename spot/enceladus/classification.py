@@ -12,8 +12,9 @@
 # limitations under the License.
 
 import datetime
+from spot.crawler.commons import parse_date
 
-info_date_pattern = '%Y-%m-%d'
+info_date_formats = ['%d-%m-%Y', '%Y-%m-%d']
 
 
 def is_enceladus_app(name):
@@ -31,20 +32,12 @@ def get_classification(name):
             'dataset': values[3],
             'dataset_version': int(values[4]) if values[4].isdigit() else values[4],
             'info_date': values[5],
-            'info_date_casted': _info_date_str_to_datetime(values[5]),
+            'info_date_casted': parse_date(values[5], formats=info_date_formats),
             'info_version': int(values[6]) if values[6].isdigit() else values[6]
         }
         return classification
     else: # old naming convention
         return _old_get_classification(name)
-
-
-def _info_date_str_to_datetime(info_date_str):
-    try:
-        date_time_obj = datetime.datetime.strptime(info_date_str, info_date_pattern)
-        return date_time_obj
-    except ValueError:
-        return None
 
 
 def _old_is_standardization(name):
@@ -77,7 +70,7 @@ def _old_get_classification(name):
             'dataset': values[2],
             'dataset_version': int(values[3]) if values[3].isdigit() else values[3],
             'info_date': values[4],
-            'info_date_casted': _info_date_str_to_datetime(values[4]),
+            'info_date_casted': parse_date(values[4], formats=info_date_formats),
             'info_version': int(values[5]) if values[5].isdigit() else values[5]
         }
     return classification

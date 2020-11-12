@@ -12,6 +12,7 @@
 # limitations under the License.
 
 import math
+from datetime import datetime
 import logging
 
 import spot.utils.setup_logger
@@ -45,6 +46,19 @@ time_units = {
     'h': 60 * 60 * 1000,
     'd': 24 * 60 * 60 * 1000
 }
+
+date_formats = ["%d-%m-%Y %H:%M:%S %z", "%d-%m-%Y %H:%M:%S"]
+
+
+def parse_date(text, formats=date_formats):
+    """ Try parsing string to date using list of formats"""
+    for fmt in formats:
+        try:
+            return datetime.strptime(text, fmt)
+        except ValueError:
+            pass
+    logger.warning(f"No valid date format found for {text}")
+    return
 
 
 def get_last_attempt(app):
@@ -112,6 +126,26 @@ def bytes_to_gb(size_bytes):
 
 
 def string_to_bool(s):
-    if s.lower() in ['true', '1', 'y', 'yes']:
+    lower = s.lower()
+    if lower in ['true', '1', 'y', 'yes']:
         return True
+    if lower in ['false', '0', 'n', 'no']:
+        return False
+    logger.warning(f"Failed to parse string to bool: {s}")
     return
+
+
+def get_attribute(doc, path_list):
+    if doc is None:
+        return
+
+    if path_list:  # path_list not empty
+        next_attribute = path_list.pop(0)
+        if isinstance(doc, dict) and next_attribute in doc:
+            return get_attribute(doc[next_attribute], path_list)
+        else:
+            return
+    else:  # path_list is empty
+        return doc
+
+
