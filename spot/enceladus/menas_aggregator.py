@@ -66,9 +66,9 @@ def _match_run(run, app_id, clfsion):
 
 class MenasAggregator:
 
-    def __init__(self, api_base_url, username, password):
+    def __init__(self, api_base_url, username, password, ssl_path=None):
         logger.debug('starting menas aggregator')
-        self.menas_api = MenasApi(api_base_url, username, password)
+        self.menas_api = MenasApi(api_base_url, username, password, ssl_path=ssl_path)
 
     @staticmethod
     def cast_run_data(run):

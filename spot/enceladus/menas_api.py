@@ -23,12 +23,13 @@ logger = logging.getLogger(__name__)
 
 class MenasApi:
 
-    def __init__(self, api_base_url, username, password):
+    def __init__(self, api_base_url, username, password, ssl_path=None):
         logger.debug('initializing Menas connector')
         self.base_url = api_base_url
         self.username = username
         self.password = password
         self.login_url = f'{api_base_url}/login'
+        self.verify = ssl_path
         self._session = None
 
     def _login(self):
@@ -37,6 +38,8 @@ class MenasApi:
 
         logger.debug('starting new Menas session')
         self._session = requests.Session()
+        if self.verify:
+            self._session.verify = self.verify
         retries = Retry(total=10, backoff_factor=1)
         adapter = requests.adapters.HTTPAdapter(max_retries=retries)
         self._session.mount(self.base_url, adapter)

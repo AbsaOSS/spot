@@ -27,8 +27,25 @@ output_dir = output
 log_level = debug
 
 [MENAS]
-# Menas provides additional metadata for Enceladus jobs.
-# It is optional.
+# Menas provides additional metadata for Enceladus jobs (OPTIONAL)
 # api_base_url = http://localhost:8080/menas/api
+# menas_ssl_path =
 # username = user
 # password = changeme
+
+[AUTH]
+# auth types for Elasticsearch currently supported:
+#   default - username and password
+#   AWS Cognito - USER_PASSWORD_AUTH via SRP
+auth_type = default
+username =
+password =
+# only required if using AWS Cognito
+#aws_account_id =
+#user_pool_id =
+#identity_pool_id =
+#cognito_region =
+#elasticsearch_region =
+#client_id =
+#client_secret =
+#elasticsearch_role_name =

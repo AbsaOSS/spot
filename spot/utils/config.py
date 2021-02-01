@@ -33,7 +33,7 @@ class Config(object):
             logger.debug(f"Configuration file is provided: {config_path}")
         logger.debug(f"Reading configuration {config_path}")
 
-        config = configparser.ConfigParser()
+        config = configparser.ConfigParser(interpolation=None)
         config.read(config_path)
         self._config = config
 
@@ -56,18 +56,6 @@ class SpotConfig(Config):
     @property
     def spark_history_url(self):
         return self.get_property('SPARK_HISTORY', 'api_base_url')
-
-    @property
-    def menas_api_url(self):
-        return self.get_property('MENAS', 'api_base_url')
-
-    @property
-    def menas_username(self):
-        return self.get_property('MENAS', 'username')
-
-    @property
-    def menas_password(self):
-        return self.get_property('MENAS', 'password')
 
     @property
     def crawler_sleep_seconds(self):
@@ -111,3 +99,64 @@ class SpotConfig(Config):
     @property
     def elastic_err_index(self):
         return self.get_property('SPOT_ELASTICSEARCH', 'err_index')
+
+    @property
+    def menas_api_url(self):
+        return self.get_property('MENAS', 'api_base_url')
+
+    @property
+    def menas_ssl_path(self):
+        return self.get_property('MENAS', 'menas_ssl_path')
+
+    @property
+    def menas_username(self):
+        return self.get_property('MENAS', 'username')
+
+    @property
+    def menas_password(self):
+        return self.get_property('MENAS', 'password')
+
+    # Additional auth
+    @property
+    def auth_type(self):
+        return self.get_property('AUTH', 'auth_type')
+
+    @property
+    def oauth_username(self):
+        return self.get_property('AUTH', 'username')
+
+    @property
+    def oauth_password(self):
+        return self.get_property('AUTH', 'password')
+
+    @property
+    def cognito_region(self):
+        return self.get_property('AUTH', 'cognito_region')
+
+    @property
+    def elasticsearch_region(self):
+        return self.get_property('AUTH', 'elasticsearch_region')
+
+    @property
+    def client_id(self):
+        return self.get_property('AUTH', 'client_id')
+
+    @property
+    def client_secret(self):
+        return self.get_property('AUTH', 'client_secret')
+
+    @property
+    def aws_account_id(self):
+        return self.get_property('AUTH', 'aws_account_id')
+
+    @property
+    def user_pool_id(self):
+        return self.get_property('AUTH', 'user_pool_id')
+
+    @property
+    def identity_pool_id(self):
+        return self.get_property('AUTH', 'identity_pool_id')
+
+    @property
+    def elasticsearch_role_name(self):
+        return self.get_property('AUTH', 'elasticsearch_role_name')
