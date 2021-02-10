@@ -15,10 +15,10 @@ sleep_seconds = 10
 skip_exceptions = False
 
 [SPOT_ELASTICSEARCH]
-elasticsearch_url = http://localhost:9200
-raw_index = spot_raw_mycluster_1
-agg_index = spot_agg_mycluster_1
-err_index = spot_err_mycluster_1
+elasticsearch_url = https://localhost:9200
+raw_index = raw_default
+agg_index = agg_default
+err_index = err_default
 # auth types for Elasticsearch currently supported:
 #   default - username and password
 #   AWS Cognito - USER_PASSWORD_AUTH via SRP
