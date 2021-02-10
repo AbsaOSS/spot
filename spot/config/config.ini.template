@@ -19,13 +19,15 @@ elasticsearch_url = https://localhost:9200
 raw_index = raw_default
 agg_index = agg_default
 err_index = err_default
-# auth types for Elasticsearch currently supported:
-#   default - username and password
-#   AWS Cognito - USER_PASSWORD_AUTH via SRP
-auth_type = default
+# The following authentication types for Elasticsearch currently supported:
+#   None - no parameters required           (unauthenticated)
+#   Direct - username and password required (authenticated via username & password)
+#   Cognito - all parameters required       (authenticated via USER_PASSWORD_AUTH through SRP by Congito)
+auth_type = None
+# Required if using Direct/Cognito
 username =
 password =
-# Required if using AWS Cognito
+# Required if using Cognito
 #aws_account_id =
 #user_pool_id =
 #identity_pool_id =
