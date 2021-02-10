@@ -29,17 +29,12 @@ REQUEST_TIMEOUT = 30
 
 class Elastic:
 
-    def __init__(self,
-                 elasticsearch_url='http://localhost:9200',
-                 conf=None,
-                 raw_index_name='raw_default',
-                 agg_index_name='agg_default',
-                 err_index_name='err_default'):
-
-        connection = elasticsearch_url
-        logger.debug(f'Setting Elasticsearch: {connection}')
+    def __init__(self, conf):
         self._conf = conf
+        connection = self._conf.elasticsearch_url
+        logger.debug(f'Setting Elasticsearch: {connection}')
         http_auth = auth_config(self._conf)
+
         self._es = elasticsearch.Elasticsearch([connection],
                                                sniff_on_start=False,
                                                # Sniffing may change host,
@@ -49,9 +44,9 @@ class Elastic:
                                                retry_on_timeout=True,
                                                http_auth=http_auth,
                                                connection_class=elasticsearch.RequestsHttpConnection)
-        self._raw_index = raw_index_name
-        self._agg_index = agg_index_name
-        self._err_index = err_index_name
+        self._raw_index = self._conf.elastic_raw_index
+        self._agg_index = self._conf.elastic_agg_index
+        self._err_index = self._conf.elastic_err_index
 
         logger.debug("Initializing elasticsearch, checking indexes")
         self.log_indexes_stats()
@@ -64,8 +59,9 @@ class Elastic:
             return request_func(**kwargs)
         except AuthorizationException as ae:
             if (ae.status_code == 403) and (self._conf.auth_type == 'cognito'):
-                if ae.error and (json.loads(ae.error)['message'] == 'The security token included in the request is expired'):
-                    self._es.transport.connection_pool.connections[0].session.auth = auth_config(self._conf)
+                logger.debug("Status code of {0} returned, token refresh required".format(ae.status_code))
+                self._es.transport.connection_pool.connections[0].session.auth = auth_config(self._conf)
+                logger.debug("Auth token refreshed")
             return request_func(**kwargs)
 
     def _insert_item(self, index, uid, item):

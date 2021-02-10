@@ -62,14 +62,6 @@ def default_enrich(app):
     app['app_specific_data'] = data
     return app
 
-def get_elastic_client(conf):
-    elastic = Elastic(elasticsearch_url=conf.elasticsearch_url,
-                      conf=conf,
-                      raw_index_name=conf.elastic_raw_index,
-                      agg_index_name=conf.elastic_agg_index,
-                      err_index_name=conf.elastic_err_index)
-    return elastic
-
 
 class DefaultSaver:
 
@@ -262,7 +254,7 @@ def main():
         logger.info(
             'Menas integration disabled as api url not provided in config')
 
-    elastic = get_elastic_client(conf)
+    elastic = Elastic(conf)
 
     # find starting end date and list of seen apps
     last_seen_end_date, seen_ids = elastic.get_latests_time_ids()

@@ -101,6 +101,50 @@ class SpotConfig(Config):
         return self.get_property('SPOT_ELASTICSEARCH', 'err_index')
 
     @property
+    def auth_type(self):
+        return self.get_property('SPOT_ELASTICSEARCH', 'auth_type')
+
+    @property
+    def oauth_username(self):
+        return self.get_property('SPOT_ELASTICSEARCH', 'username')
+
+    @property
+    def oauth_password(self):
+        return self.get_property('SPOT_ELASTICSEARCH', 'password')
+
+    @property
+    def cognito_region(self):
+        return self.get_property('SPOT_ELASTICSEARCH', 'cognito_region')
+
+    @property
+    def elasticsearch_region(self):
+        return self.get_property('SPOT_ELASTICSEARCH', 'elasticsearch_region')
+
+    @property
+    def client_id(self):
+        return self.get_property('SPOT_ELASTICSEARCH', 'client_id')
+
+    @property
+    def client_secret(self):
+        return self.get_property('SPOT_ELASTICSEARCH', 'client_secret')
+
+    @property
+    def aws_account_id(self):
+        return self.get_property('SPOT_ELASTICSEARCH', 'aws_account_id')
+
+    @property
+    def user_pool_id(self):
+        return self.get_property('SPOT_ELASTICSEARCH', 'user_pool_id')
+
+    @property
+    def identity_pool_id(self):
+        return self.get_property('SPOT_ELASTICSEARCH', 'identity_pool_id')
+
+    @property
+    def elasticsearch_role_name(self):
+        return self.get_property('SPOT_ELASTICSEARCH', 'elasticsearch_role_name')
+
+    @property
     def menas_api_url(self):
         return self.get_property('MENAS', 'api_base_url')
 
@@ -115,48 +159,3 @@ class SpotConfig(Config):
     @property
     def menas_password(self):
         return self.get_property('MENAS', 'password')
-
-    # Additional auth
-    @property
-    def auth_type(self):
-        return self.get_property('AUTH', 'auth_type')
-
-    @property
-    def oauth_username(self):
-        return self.get_property('AUTH', 'username')
-
-    @property
-    def oauth_password(self):
-        return self.get_property('AUTH', 'password')
-
-    @property
-    def cognito_region(self):
-        return self.get_property('AUTH', 'cognito_region')
-
-    @property
-    def elasticsearch_region(self):
-        return self.get_property('AUTH', 'elasticsearch_region')
-
-    @property
-    def client_id(self):
-        return self.get_property('AUTH', 'client_id')
-
-    @property
-    def client_secret(self):
-        return self.get_property('AUTH', 'client_secret')
-
-    @property
-    def aws_account_id(self):
-        return self.get_property('AUTH', 'aws_account_id')
-
-    @property
-    def user_pool_id(self):
-        return self.get_property('AUTH', 'user_pool_id')
-
-    @property
-    def identity_pool_id(self):
-        return self.get_property('AUTH', 'identity_pool_id')
-
-    @property
-    def elasticsearch_role_name(self):
-        return self.get_property('AUTH', 'elasticsearch_role_name')

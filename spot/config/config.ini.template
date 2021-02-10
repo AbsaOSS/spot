@@ -16,31 +16,16 @@ skip_exceptions = False
 
 [SPOT_ELASTICSEARCH]
 elasticsearch_url = http://localhost:9200
-username =
-password =
 raw_index = spot_raw_mycluster_1
 agg_index = spot_agg_mycluster_1
 err_index = spot_err_mycluster_1
-
-[MISC]
-output_dir = output
-log_level = debug
-
-[MENAS]
-# Menas provides additional metadata for Enceladus jobs (OPTIONAL)
-# api_base_url = http://localhost:8080/menas/api
-# menas_ssl_path =
-# username = user
-# password = changeme
-
-[AUTH]
 # auth types for Elasticsearch currently supported:
 #   default - username and password
 #   AWS Cognito - USER_PASSWORD_AUTH via SRP
 auth_type = default
 username =
 password =
-# only required if using AWS Cognito
+# Required if using AWS Cognito
 #aws_account_id =
 #user_pool_id =
 #identity_pool_id =
@@ -49,3 +34,15 @@ password =
 #client_id =
 #client_secret =
 #elasticsearch_role_name =
+
+[MISC]
+output_dir = output
+log_level = debug
+
+[MENAS]
+# Menas provides additional metadata for Enceladus jobs (OPTIONAL)
+# api_base_url = https://localhost:8080/menas/api
+# Provide a path to a CA bundle for Menas HTTPS verification, if required
+# menas_ssl_path =
+# username = user
+# password = changeme
