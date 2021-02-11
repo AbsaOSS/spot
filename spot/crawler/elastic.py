@@ -13,11 +13,14 @@
 
 import logging
 import elasticsearch
+from elasticsearch.exceptions import AuthorizationException
 import pandas as pd
 from datetime import datetime
+import json
 
 from spot.crawler.commons import sizeof_fmt
 from spot.utils.config import SpotConfig
+from spot.utils.auth import auth_config
 import spot.utils.setup_logger
 
 logger = logging.getLogger(__name__)
@@ -26,16 +29,12 @@ REQUEST_TIMEOUT = 30
 
 class Elastic:
 
-    def __init__(self,
-                 elasticsearch_url='http://localhost:9200',
-                 username='',
-                 password='',
-                 raw_index_name='raw_default',
-                 agg_index_name='agg_default',
-                 err_index_name='err_default'):
-
-        connection = elasticsearch_url
+    def __init__(self, conf):
+        self._conf = conf
+        connection = self._conf.elasticsearch_url
         logger.debug(f'Setting Elasticsearch: {connection}')
+        http_auth = auth_config(self._conf)
+
         self._es = elasticsearch.Elasticsearch([connection],
                                                sniff_on_start=False,
                                                # Sniffing may change host,
@@ -43,29 +42,44 @@ class Elastic:
                                                sniff_on_connection_fail=False,
                                                timeout=REQUEST_TIMEOUT,
                                                retry_on_timeout=True,
-                                               http_auth=(username, password)
-                                               )
-        self._raw_index = raw_index_name
-        self._agg_index = agg_index_name
-        self._err_index = err_index_name
+                                               http_auth=http_auth,
+                                               connection_class=elasticsearch.RequestsHttpConnection)
+        self._raw_index = self._conf.elastic_raw_index
+        self._agg_index = self._conf.elastic_agg_index
+        self._err_index = self._conf.elastic_err_index
 
         logger.debug("Initializing elasticsearch, checking indexes")
         self.log_indexes_stats()
 
+    def __do_request(self, request_func, **kwargs):
+        '''
+        Passes an Elasticsearch function to be called, catching AuthorizationException and refreshing the
+        '''
+        try:
+            return request_func(**kwargs)
+        except AuthorizationException as ae:
+            if (ae.status_code == 403) and (self._conf.auth_type == 'cognito'):
+                logger.debug("Status code of {0} returned, token refresh required".format(ae.status_code))
+                self._es.transport.connection_pool.connections[0].session.auth = auth_config(self._conf)
+                logger.debug("Auth token refreshed")
+            return request_func(**kwargs)
+
     def _insert_item(self, index, uid, item):
         if uid is not None:
-            res = self._es.index(index=index,
-                                 op_type='create',
-                                 id=uid,
-                                 body=item,
-                                 ignore=[],
-                                 request_timeout=REQUEST_TIMEOUT)
+            res = self.__do_request(self._es.index,
+                                index = index,
+                                op_type = 'create',
+                                id = uid,
+                                body = item,
+                                ignore = [],
+                                request_timeout = REQUEST_TIMEOUT)
         else:
-            res = self._es.index(index=index,
-                                 op_type='create',
-                                 body=item,
-                                 ignore=[],
-                                 request_timeout=REQUEST_TIMEOUT)
+            res = self.__do_request(self._es.index, index = index,
+                                 op_type = 'create',
+                                 body = item,
+                                 ignore = [],
+                                 request_timeout = REQUEST_TIMEOUT)
+
         if res.get('result') == 'created':
             logger.debug(f'{uid} added to {index}')
         # else:
@@ -86,7 +100,7 @@ class Elastic:
 
     def get_latests_time_ids(self):
         id_set = set()
-        if not self._es.indices.exists(index=self._raw_index):
+        if not self.__do_request(self._es.indices.exists, index=self._raw_index):
             return None, id_set
 
         # get max end_time
@@ -97,8 +111,9 @@ class Elastic:
             }
         }
 
-        res_time = self._es.search(index=self._raw_index,
-                                   body=body_max_end_time)
+        res_time = self.__do_request(self._es.search,
+                                    index = self._raw_index,
+                                    body = body_max_end_time)
         # es uses epoch_millis internally
         timestamp = res_time['aggregations']['max_endTime']['value']
         if timestamp is None:
@@ -117,8 +132,9 @@ class Elastic:
             }
         }
 
-        res_ids = self._es.search(index=self._raw_index,
-                                  body=body_id_list)
+        res_ids = self.__do_request(self._es.search,
+                                    index = self._raw_index,
+                                    body = body_id_list)
 
         for hit in res_ids['hits']['hits']:
             id_set.add(hit['_id'])
@@ -139,13 +155,13 @@ class Elastic:
             self._err_index
         ]
         for index in indexes:
-            if self._es.indices.exists(index=index):
+            if self.__do_request(self._es.indices.exists, index=index):
                 yield self._get_index_stats(index)
             else:
                 logger.warning(f'index {index} does not exist')
 
     def _get_index_stats(self, index):
-        res = self._es.indices.stats(index=index)
+        res = self.__do_request(self._es.indices.stats, index=index)
         primaries = res['indices'][index]['primaries']
         docs_count = primaries['docs']['count']
         size_bytes = primaries['store']['size_in_bytes']
@@ -173,7 +189,9 @@ class Elastic:
                 }
             }
         }
-        res = self._es.search(index=self._raw_index, body=body)
+        res = self.__do_request(self._es.search,
+                                index = self._raw_index,
+                                body = body)
         logger.debug(res)
         buckets = res.get('aggregations').get('top_tags').get('buckets')
         for bucket in buckets:
@@ -187,14 +205,18 @@ class Elastic:
                 }
             }
         }
-        res = self._es.search(index=self._raw_index, body=body)
+        res = self.__do_request(self._es.search,
+                                index = self._raw_index,
+                                body = body)
         logger.debug(res)
         hits = res.get('hits').get('hits')
         for hit in hits:
             yield hit.get('_source')
 
     def get_by_id(self, id):
-        res = self._es.get(index=self._raw_index, id=id)
+        res = self.__do_request(self._es.get,
+                                index = self._raw_index,
+                                id = id)
         return res.get('_source')
 
 

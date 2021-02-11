@@ -23,6 +23,7 @@ from spot.crawler.flattener import flatten_app
 from spot.crawler.aggregator import HistoryAggregator
 from spot.crawler.elastic import Elastic
 from spot.crawler.crawler_args import CrawlerArgs
+from spot.utils.auth import auth_config
 import spot.utils.setup_logger
 
 from spot.enceladus.menas_aggregator import MenasAggregator
@@ -246,18 +247,14 @@ def main():
         logger.info(f"adding Menas aggregator, api url {conf.menas_api_url}")
         menas_ag = MenasAggregator(conf.menas_api_url,
                                    conf.menas_username,
-                                   conf.menas_password)
+                                   conf.menas_password,
+                                   ssl_path=conf.menas_ssl_path)
     else:
         menas_ag = None
         logger.info(
             'Menas integration disabled as api url not provided in config')
 
-    elastic = Elastic(elasticsearch_url=conf.elasticsearch_url,
-                      username=conf.elastic_username,
-                      password=conf.elastic_password,
-                      raw_index_name=conf.elastic_raw_index,
-                      agg_index_name=conf.elastic_agg_index,
-                      err_index_name=conf.elastic_err_index)
+    elastic = Elastic(conf)
 
     # find starting end date and list of seen apps
     last_seen_end_date, seen_ids = elastic.get_latests_time_ids()
