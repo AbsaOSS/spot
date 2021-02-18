@@ -63,7 +63,8 @@ _remove_keys_dict = {
         'spark_yarn_app_container_log_dir',
         'spark_history_kerberos_keytab',
         'spark_org_apache_hadoop_yarn_server_webproxy_amfilter_AmIpFilter_param_RM_HA_URLS',
-        'spark_history_kerberos_principal'
+        'spark_history_kerberos_principal',
+        'spark_driver_extraJavaOptions'
 
     ],
     'runtime': [
