@@ -64,7 +64,13 @@ _remove_keys_dict = {
         'spark_history_kerberos_keytab',
         'spark_org_apache_hadoop_yarn_server_webproxy_amfilter_AmIpFilter_param_RM_HA_URLS',
         'spark_history_kerberos_principal',
-        'spark_driver_extraJavaOptions'
+        'spark_driver_extraJavaOptions',
+        'spark_executor_extraJavaOptions',
+        'spark_executorEnv_PYTHONPATH',
+        'spark_yarn_am_extraJavaOptions',
+        'spark_yarn_keytab',
+        'spark_yarn_principal'
+
 
     ],
     'runtime': [
