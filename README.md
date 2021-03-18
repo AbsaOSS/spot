@@ -177,7 +177,7 @@ If the index names follow the defined pattern (spot\_\<raw/agg/err\>\_\<cluster_
 the data can be visualized in Kibana using the setup provided in [Kibana directory](spot/kibana/). 
 There the data can be filtered by history_host.keyword if required.
 
-### Running Crawler
+### Run Crawler
 `cd spot/crawler`
 
 `python3 crawler.py [options]`
@@ -188,10 +188,15 @@ There the data can be filtered by history_host.keyword if required.
 
 This will start the main loop of the crawler. It gets new completed apps, processes and stores them in the database. When all the new apps are processed the crawler sleeps `sleep_seconds` (see config.ini) before the next iteration. To exit the loop, kill the process.
 
-### Importing Kibana Demo Dashboard
+### Import Kibana Demo Dashboard
 [Kibana directory](spot/kibana/) contains objects which can be 
 [imported to Kibana](https://www.elastic.co/guide/en/kibana/current/managing-saved-objects.html#:~:text=Importedit,already%20in%20Kibana%20are%20overwritten.). 
-For example, there is a [demo dashboard](spot/kibana/spot_demo.ndjson) demonstrating basic statistics of Spark applications.
+For example, there is a [demo dashboard](spot/kibana/dashboards/spot_demo.ndjson) demonstrating basic statistics of Spark applications.
+
+### Configure Alerts
+To trigger an [alert in Kibana](https://www.elastic.co/guide/en/kibana/master/alerting-getting-started.html)  when a critical error occurs in Spot (e.g. Spark History server is in a wrong state) 
+the prepared [queries](spot/kibana/queries/spot_demo.ndjson) can be used.
+
 
 ### Common issues
 <b>Issue</b>: RequestError(400, 'illegal_argument_exception', 'Limit of total fields [1000] in index [<spot_index>] has been exceeded')
