@@ -194,8 +194,13 @@ This will start the main loop of the crawler. It gets new completed apps, proces
 For example, there is a [demo dashboard](spot/kibana/dashboards/spot_demo.ndjson) demonstrating basic statistics of Spark applications.
 
 ### Configure Alerts
-To trigger an [alert in Kibana](https://www.elastic.co/guide/en/kibana/master/alerting-getting-started.html)  when a critical error occurs in Spot (e.g. Spark History server is in a wrong state) 
-the prepared [queries](spot/kibana/queries/spot_demo.ndjson) can be used.
+To trigger an [alert in Kibana](https://www.elastic.co/guide/en/kibana/master/alerting-getting-started.html)  
+when a critical error occurs in Spot (e.g. Spark History server is in a wrong state) 
+the prepared [queries](spot/kibana/queries/spot_severe_internal_errors.txt) can be used.
+
+The Kibana alerts can be configured to [use AWS SNS topic as a destination](https://aws.amazon.com/blogs/big-data/setting-alerts-in-amazon-elasticsearch-service/), where it can further can be subscribed to via email.
+ In addition, an [encrypted SNS topic](https://aws.amazon.com/blogs/compute/encrypting-messages-published-to-amazon-sns-with-aws-kms/) can be used (recommended) 
+ which requires an additional configuration of IAM role as explained in the referred tutorial.
 
 
 ### Common issues
