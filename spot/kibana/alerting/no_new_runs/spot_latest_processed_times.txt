@@ -1,0 +1,22 @@
+{
+  "size":0,
+  "aggs": {
+    "history_hosts": {
+      "terms": {
+        "field": "history_host.keyword"
+      },
+      "aggs": {
+        "max_endTime": {
+          "max": {
+            "field": "attempt.endTime"
+          }
+        },
+        "max_time_processed": {
+          "max": {
+            "field": "spot.time_processed"
+          }
+        }
+      }
+    }
+  }
+}
