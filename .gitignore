@@ -6,4 +6,3 @@ spot/output/*
 *.pyc
 .idea
 venv
-!logging_config.ini
