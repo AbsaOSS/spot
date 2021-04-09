@@ -5,6 +5,17 @@ api_base_url = http://localhost:18080/api/v1
 # Time between pulling of new completed runs from Spark History
 sleep_seconds = 10
 
+# When YARN is used as Spark master, if a run attempt fails it might be
+# restarted with the same app id but a new attempt id.
+# After an attempt has failed but before a new attempt is started
+# the application may appear as completed in Spark history. Later on,
+# when the new attempt is finished the application will appear as completed
+# again but with an updated completion time. As the result, Spot crawler may
+# encounter such application multiple times. To avoid repeated processing,
+# crawler processes only the runs which were completed at least this many seconds ago.
+# The default is 300 seconds.
+completion_timeout_seconds = 900
+
 # When processing a particular run causes an exception
 # (e.g. missing critical metadata, external services errors, etc.)
 # the error message is logged into err_index.
