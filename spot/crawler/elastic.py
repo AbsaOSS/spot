@@ -13,7 +13,7 @@
 
 import logging
 import elasticsearch
-from elasticsearch.exceptions import AuthorizationException
+from elasticsearch.exceptions import AuthorizationException, ConflictError
 import pandas as pd
 from datetime import datetime
 import json
@@ -64,26 +64,26 @@ class Elastic:
                 logger.debug("Auth token refreshed")
             return request_func(**kwargs)
 
-    def _insert_item(self, index, uid, item):
+    def _insert_item(self, index, uid, item, on_version_conflict='fail'):
         if uid is not None:
             res = self.__do_request(self._es.index,
-                                index = index,
-                                op_type = 'create',
-                                id = uid,
-                                body = item,
-                                ignore = [],
-                                request_timeout = REQUEST_TIMEOUT)
+                                    index=index,
+                                    op_type='index', # overwrites docs with existing ids
+                                    id=uid,
+                                    body=item,
+                                    ignore=[],
+                                    request_timeout=REQUEST_TIMEOUT)
         else:
-            res = self.__do_request(self._es.index, index = index,
-                                 op_type = 'create',
-                                 body = item,
-                                 ignore = [],
-                                 request_timeout = REQUEST_TIMEOUT)
+            res = self.__do_request(self._es.index,
+                                    index=index,
+                                    op_type='create',
+                                    body=item,
+                                    ignore=[],
+                                    request_timeout=REQUEST_TIMEOUT)
 
-        if res.get('result') == 'created':
-            logger.debug(f'{uid} added to {index}')
-        # else:
-        #    self._process_elasticsearch_error(res)
+        op_result = res.get('result')
+        doc_version = res.get('_version')
+        logger.debug(f'uid: {uid} {op_result} as version {doc_version} in index {index}')
 
     def save_app(self, app):
         uid = app.get('id')

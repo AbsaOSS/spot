@@ -3,7 +3,7 @@ api_base_url = http://localhost:18080/api/v1
 
 [CRAWLER]
 # Time between pulling of new completed runs from Spark History
-sleep_seconds = 10
+sleep_seconds = 300
 
 # When YARN is used as Spark master, if a run attempt fails it might be
 # restarted with the same app id but a new attempt id.
@@ -14,7 +14,7 @@ sleep_seconds = 10
 # encounter such application multiple times. To avoid repeated processing,
 # crawler processes only the runs which were completed at least this many seconds ago.
 # The default is 300 seconds.
-completion_timeout_seconds = 900
+completion_timeout_seconds = 300
 
 # When processing a particular run causes an exception
 # (e.g. missing critical metadata, external services errors, etc.)
