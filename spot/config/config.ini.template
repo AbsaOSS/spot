@@ -48,6 +48,12 @@ auth_type = None
 #client_secret =
 #elasticsearch_role_name =
 
+
+# By default elasticsearch has a limit of total fields of 1000 per document.
+# When the value is exceeded Spot incrementally increases the setting.
+# By default the increment step is 100.
+#limit_of_fields_increment = 100
+
 [MISC]
 output_dir = output
 log_level = debug

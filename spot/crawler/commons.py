@@ -160,3 +160,9 @@ def get_attribute(doc, path_list):
         return doc
 
 
+def num_elements(x):
+    if isinstance(x, dict):
+        return sum([num_elements(_x) for _x in x.values()])
+    else:
+        return 1
+

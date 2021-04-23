@@ -152,6 +152,13 @@ class SpotConfig(Config):
         return self.get_property('SPOT_ELASTICSEARCH', 'elasticsearch_role_name')
 
     @property
+    def elasticsearch_limit_of_fields_increment(self):
+        str_val = self.get_property('SPOT_ELASTICSEARCH', 'limit_of_fields_increment')
+        if str_val.isdigit():
+            return int(str_val)
+        return 100
+
+    @property
     def menas_api_url(self):
         return self.get_property('MENAS', 'api_base_url')
 

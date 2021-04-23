@@ -121,7 +121,7 @@ class Crawler:
                 'error': {
                     'type': e.__class__.__name__,
                     'message': error_msg,
-                    'stage': 'raw'
+                    'stage': stage_name
                 }
             }
         }
