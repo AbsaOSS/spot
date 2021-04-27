@@ -156,6 +156,10 @@ def add_custom_stage_metrics(attempt, stage):
     stage['throughput_bytes'] = throughput_bytes
     stage['throughput_records'] = throughput_records
 
+    if stage['numCompleteTasks'] != 0:
+        stage['x_average_task_input_bytes'] = stage['inputBytes'] / stage['numCompleteTasks']
+        stage['x_average_task_output_bytes'] = stage['outputBytes'] / stage['numCompleteTasks']
+
 
 def flatten_stages(attempt):
     stages = attempt.get('stages')
