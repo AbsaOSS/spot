@@ -105,9 +105,14 @@ def add_custom_executor_metrics(attempt, ex):
     ex['x_stopTime'] = ex.get('removeTime', attempt_end)
     duration_ms = (ex['x_stopTime'] - ex['x_startTime']).total_seconds() * 1000
     ex['x_durationMilliseconds'] = duration_ms
+    duration_hours = float((ex['x_stopTime'] - ex['x_startTime']).total_seconds() / 3600.0)
+    ex['x_durationHours'] = duration_hours
     ex['x_coreCost'] = ex['totalCores'] * duration_ms
     storage_gb = bytes_to_gb(ex['maxMemory'])
     ex['x_storageCost'] = storage_gb * duration_ms
+    ex['x_coreCost_hours'] = ex['totalCores'] * duration_hours
+    ex['x_storageCost_GbHours'] = storage_gb * duration_hours
+
     return ex
 
 
@@ -310,19 +315,17 @@ def calculate_summary(attempt, aggs):
 
             unused_core_cost = core_cost - parallel_work
             summary['unused_core_cost'] = unused_core_cost
-
-        #props = attempt['environment']['sparkProperties']
-        #if 'spark_executor_memory' in props:
-        #    summary['executor_memory_bytes'] = parse_to_bytes(props['spark_executor_memory'])
-
-        #if 'spark_driver_memory' in props:
-        #    summary['driver_memory_bytes'] = parse_to_bytes(props['spark_driver_memory'])
+            summary['x_unused_core_cost_hours'] = float(unused_core_cost / 3600000.0)
 
         if aggs['allexecutors']['executors']['maxMemory']['sum'] != 0:
             est_peak_memory_usage = aggs['stages']['inputBytes']['max'] + aggs['stages']['outputBytes']['max']
             summary['est_peak_memory_usage'] = est_peak_memory_usage
-            storage_memory_usage =  est_peak_memory_usage\
-                                   / aggs['allexecutors']['executors']['maxMemory']['sum']
+            storage_memory_usage = est_peak_memory_usage\
+                / aggs['allexecutors']['executors']['maxMemory']['sum']
             summary['storage_memory_usage'] = storage_memory_usage
+            unused_storage_memory_bytes = aggs['allexecutors']['executors']['maxMemory']['sum'] - est_peak_memory_usage
+            summary['x_unused_storage_memory_bytes'] = unused_storage_memory_bytes
+
+
 
     return summary
