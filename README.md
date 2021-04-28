@@ -167,7 +167,7 @@ The Enceladus module provides integration capabilities for Spot usage with [Ence
     raw_index=spot\_raw\_\<cluster_name\>\_\<id\>,  
     agg_index=spot\_agg\_\<cluster_name\>\_\<id\>,  
     err_index=spot\_err\_\<cluster_name\>\_\<id\>  
-- Configure logging in /spot/config/logging_confg.ini (see [Logging](https://docs.python.org/2/library/logging.config.html#configuration-file-format))
+- Configure logging: in /spot/config copy logging_confg.template to logging_confg.ini and adjust the parameters (see [Logging](https://docs.python.org/2/library/logging.config.html#configuration-file-format))
 
 ### Multicluster configuration
 It is possible to monitor multiple clusters (each with its own Spark History server) with Spot. 
