@@ -14,6 +14,7 @@
 import math
 from datetime import datetime
 import logging
+import re
 
 import spot.utils.setup_logger
 
@@ -166,3 +167,30 @@ def num_elements(x):
     else:
         return 1
 
+
+def get_default_classification(name):
+    classification = {
+        'app': name,
+        'type': name,
+    }
+    values = re.split(r'[ ;,.\-\%\_]', name)
+    i = 1
+    for val in values:
+        classification[i] = val
+        i += 1
+    return classification
+
+
+def get_default_tag(classification):
+    tag = classification.get('app', None)
+    return tag
+
+
+def default_enrich(app):
+    app_name = app.get('name')
+    data = {}
+    clfsion = get_default_classification(app_name)
+    data['classification'] = clfsion
+    data['tag'] = get_default_tag(clfsion)
+    app['app_specific_data'] = data
+    return app

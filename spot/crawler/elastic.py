@@ -45,9 +45,14 @@ class Elastic:
                                                retry_on_timeout=True,
                                                http_auth=http_auth,
                                                connection_class=elasticsearch.RequestsHttpConnection)
+        # Spark indexes
         self._raw_index = self._conf.elastic_raw_index
         self._agg_index = self._conf.elastic_agg_index
         self._err_index = self._conf.elastic_err_index
+
+        # YARN indexes
+        self._yarn_clust_index = self._conf.yarn_clust_index
+
         self._limit_of_fields_increment = self._conf.elasticsearch_limit_of_fields_increment
 
         logger.debug("Initializing elasticsearch, checking indexes")
@@ -124,6 +129,9 @@ class Elastic:
 
     def save_err(self, app):
         self._insert_item(self._err_index, None, app)
+
+    def save_yarn_cluster_stats(self, clust_stats):
+        self._insert_item(self._yarn_clust_index, None, clust_stats)
 
     def get_latests_time_ids(self):
         id_set = set()

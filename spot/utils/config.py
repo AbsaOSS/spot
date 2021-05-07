@@ -173,3 +173,23 @@ class SpotConfig(Config):
     @property
     def menas_password(self):
         return self.get_property('MENAS', 'password')
+
+
+    @property
+    def yarn_api_base_url(self):
+        return self.get_property('YARN', 'yarn_api_base_url')
+
+    @property
+    def yarn_clust_index(self):
+        return self.get_property('YARN', 'yarn_clust_index')
+
+    @property
+    def yarn_apps_index(self):
+        return self.get_property('YARN', 'yarn_apps_index')
+
+    @property
+    def yarn_sleep_seconds(self):
+        str_val = self.get_property('YARN', 'yarn_sleep_seconds')
+        if str_val.isdigit():
+            return int(str_val)
+        return 60

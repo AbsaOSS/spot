@@ -13,7 +13,6 @@
 
 import logging
 import time
-import re
 from datetime import datetime, timedelta
 from pprint import pprint
 
@@ -23,6 +22,7 @@ from spot.crawler.flattener import flatten_app
 from spot.crawler.aggregator import HistoryAggregator
 from spot.crawler.elastic import Elastic
 from spot.crawler.crawler_args import CrawlerArgs
+from spot.crawler.commons import default_enrich
 from spot.utils.auth import auth_config
 import spot.utils.setup_logger
 
@@ -33,34 +33,6 @@ logger = logging.getLogger(__name__)
 
 def _include_all_filter(app_name):
     return True
-
-
-def get_default_classification(name):
-    classification = {
-        'app': name,
-        'type': name,
-    }
-    values = re.split(r'[ ;,.\-\%\_]', name)
-    i = 1
-    for val in values:
-        classification[i] = val
-        i += 1
-    return classification
-
-
-def get_default_tag(classification):
-    tag = classification.get('app', None)
-    return tag
-
-
-def default_enrich(app):
-    app_name = app.get('name')
-    data = {}
-    clfsion = get_default_classification(app_name)
-    data['classification'] = clfsion
-    data['tag'] = get_default_tag(clfsion)
-    app['app_specific_data'] = data
-    return app
 
 
 class DefaultSaver:
@@ -169,7 +141,8 @@ class Crawler:
     def _process_app(self, app):
         app['history_host'] = self._history_host
         app['spot'] = {
-            'time_processed': datetime.now()
+            'time_processed': datetime.now(),
+            'history_host': self._history_host
         }
         success = self._process_raw(app)
         if success:  # if no exceptions while getting data
