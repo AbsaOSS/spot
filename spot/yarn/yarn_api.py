@@ -40,7 +40,8 @@ class Yarn:
 
         url = f"{self._yarn_base_url}/{path}"
         logger.debug(f"sending request to {url} with params {params}")
-        response = self._session.get(url, params=params)
+        headers = {'Accept': 'application/json'}
+        response = self._session.get(url, params=params, headers=headers)
 
         if response.status_code != requests.codes.ok:
             response.raise_for_status()

@@ -40,16 +40,24 @@ def main():
     elastic = Elastic(conf)
     yarn = YarnWrapper(conf.yarn_api_base_url)
 
+
+
     while True:
         logger.debug(f"Getting data from YARN at {conf.yarn_api_base_url}")
+        # cluster stats
         clust_stats = yarn.get_cluster_stats()
-        clust_stats['spot'] = {
-            'time_processed': datetime.utcnow(),
-            'yarn_host': host
-        }
-        pprint(clust_stats)
+        #pprint(clust_stats)
         elastic.save_yarn_cluster_stats(clust_stats)
         elastic.log_indexes_stats()
+
+        # apps stats
+        finishedTimeBegin = elastic.get_yarn_latest_finished_time()
+        apps = yarn.get_apps(states=['FINISHED'],finishedTimeBegin=finishedTimeBegin)
+
+        elastic.save_yarn_apps(apps)
+        #for app in apps:
+
+
         time.sleep(conf.yarn_sleep_seconds)
 
 

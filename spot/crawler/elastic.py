@@ -13,6 +13,7 @@
 
 import logging
 import elasticsearch
+from elasticsearch.helpers import bulk
 from elasticsearch.exceptions import AuthorizationException, RequestError
 import pandas as pd
 from datetime import datetime
@@ -52,24 +53,25 @@ class Elastic:
 
         # YARN indexes
         self._yarn_clust_index = self._conf.yarn_clust_index
+        self._yarn_apps_index = self._conf.yarn_apps_index
 
         self._limit_of_fields_increment = self._conf.elasticsearch_limit_of_fields_increment
 
         logger.debug("Initializing elasticsearch, checking indexes")
         self.log_indexes_stats()
 
-    def __do_request(self, request_func, **kwargs):
+    def __do_request(self, request_func, *args, **kwargs):
         '''
         Passes an Elasticsearch function to be called, catching AuthorizationException and refreshing the
         '''
         try:
-            return request_func(**kwargs)
+            return request_func(*args, **kwargs)
         except AuthorizationException as ae:
             if (ae.status_code == 403) and (self._conf.auth_type == 'cognito'):
                 logger.debug("Status code of {0} returned, token refresh required".format(ae.status_code))
                 self._es.transport.connection_pool.connections[0].session.auth = auth_config(self._conf)
                 logger.debug("Auth token refreshed")
-            return request_func(**kwargs)
+            return request_func(*args, **kwargs)
 
     def _insert_item(self, index, uid, item):
         try:
@@ -130,9 +132,6 @@ class Elastic:
     def save_err(self, app):
         self._insert_item(self._err_index, None, app)
 
-    def save_yarn_cluster_stats(self, clust_stats):
-        self._insert_item(self._yarn_clust_index, None, clust_stats)
-
     def get_latests_time_ids(self):
         id_set = set()
         if not self.__do_request(self._es.indices.exists, index=self._raw_index):
@@ -182,6 +181,49 @@ class Elastic:
             logger.debug(f'index: {name} '
                          f'count:{count} '
                          f'size: {sizeof_fmt(size_bytes)}')
+
+    # YARN RELATED
+    def save_yarn_cluster_stats(self, clust_stats):
+        self._insert_item(self._yarn_clust_index, None, clust_stats)
+
+    def get_yarn_latest_finished_time(self):
+        if not self.__do_request(self._es.indices.exists, index=self._yarn_apps_index):
+            return None
+
+        # get max end_time
+        body_max_end_time = {
+            'size': 0,
+            'aggs': {
+                'max_endTime': {'max': {'field': 'finishedTime'}}
+            }
+        }
+        res_time = self.__do_request(self._es.search,
+                                     index = self._yarn_apps_index,
+                                     body = body_max_end_time)
+        # es uses epoch_millis internally
+        timestamp = res_time['aggregations']['max_endTime']['value']
+        if timestamp is None:
+            return None
+
+        max_end_time = datetime.utcfromtimestamp(timestamp/1000.0)
+        return max_end_time
+
+    def _prepare_yarn_apps(self, apps):
+        for app in apps:
+            item = dict()
+            item['_id'] = app.get('id')
+            item['_index'] = self._yarn_apps_index
+            item['_op_type'] = 'index'
+            item['_type'] = '_doc'
+            item['_source'] = app
+            yield item
+
+    def save_yarn_apps(self, apps):
+        res = self.__do_request(bulk, self._es, self._prepare_yarn_apps(apps))
+        #elasticsearch.helpers.bulk(self._es, self._prepare_yarn_apps(apps))
+
+
+    # STATS QUERIES
 
     def get_indexes_stats(self):
         indexes = [

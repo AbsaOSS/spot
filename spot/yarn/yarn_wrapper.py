@@ -20,6 +20,7 @@ import spot.utils.setup_logger
 from spot.crawler.commons import default_enrich
 from spot.enceladus.classification import get_classification, is_enceladus_app, get_tag
 import spot.yarn.yarn_api as yarn_api
+from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
 
@@ -51,33 +52,42 @@ def _cast_timestamps(doc, doc_type):
     return doc
 
 
-def _process_enceladus_app(app):
-    app_name = app.get('name')
-    data = {}
-    clfsion = get_classification(app_name)
-    data['classification'] = clfsion
-    data['tag'] = get_tag(clfsion)
-    app['app_specific_data'] = data
-    return app
-
-def _process_app(app):
-    app = _cast_timestamps(app, 'app')
-    app = default_enrich(app)
-    return app
-
-
 class YarnWrapper:
 
     def __init__(self, yarn_base_url):
         self._api = yarn_api.Yarn(yarn_base_url)
+        self._host = urlparse(yarn_base_url).hostname
 
     def get_app(self, app_id):
         doc = self._api.get_app(app_id)
         app = doc.get('app')
         if is_enceladus_app(app.get('name')):
-            _process_enceladus_app(app)
+            self._process_enceladus_app(app)
         else:
-            _process_app(app)
+            self._process_app(app)
+        return app
+
+    def _add_spot_meta(self, doc):
+        doc['spot'] = {
+            'time_processed': datetime.utcnow(),
+            'yarn_host': self._host
+        }
+        return doc
+
+    def _process_app(self, app):
+        app = _cast_timestamps(app, 'app')
+        app = default_enrich(app)
+        app = self._add_spot_meta(app)
+        return app
+
+    def _process_enceladus_app(self, app):
+        app_name = app.get('name')
+        data = {}
+        clfsion = get_classification(app_name)
+        data['classification'] = clfsion
+        data['tag'] = get_tag(clfsion)
+        app['app_specific_data'] = data
+        app = self._add_spot_meta(app)
         return app
 
     def get_apps(self,
@@ -116,8 +126,7 @@ class YarnWrapper:
                                  deSelects=deSelects)
 
         for app in res['apps']['app']:
-            yield _process_app(app)
-
+            yield self._process_app(app)
 
     def get_cluster_stats(self):
         doc = dict()
@@ -125,6 +134,10 @@ class YarnWrapper:
         doc['clusterMetrics'] = self._api.get_cluster_metrics().get('clusterMetrics')
         #doc['scheduler'] = self._api.get_cluster_scheduler()
         doc['appStatInfo'] = self.get_app_stats().get('appStatInfo')
+        doc['spot'] = {
+            'time_processed': datetime.utcnow(),
+            'yarn_host': self._host
+        }
         return doc
 
     def get_app_stats(self, states=None, types=_default_apptypes):
