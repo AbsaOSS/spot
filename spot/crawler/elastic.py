@@ -68,7 +68,7 @@ class Elastic:
 
     def _insert_item(self, index, uid, item):
         try:
-            if uid is not None:
+            if uid:
                 res = self.__do_request(self._es.index,
                                         index=index,
                                         op_type='index', # overwrites docs with existing ids
