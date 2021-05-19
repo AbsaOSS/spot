@@ -1,0 +1,20 @@
+Monitor {{ctx.monitor.name}} just entered alert status. Please investigate the issue.
+- Trigger: {{ctx.trigger.name}}
+- Severity: {{ctx.trigger.severity}}
+- Period start: {{ctx.periodStart}}
+- Period end: {{ctx.periodEnd}}
+
+Total critical errors:  {{ctx.results.0.hits.total.value}}
+
+Critical error types aggregated by host:
+{{#ctx.results.0.aggregations.history_host.buckets}}
+  {{key}} {{#critical_errors.buckets}}  {{key}}:{{doc_count}}   {{/critical_errors.buckets}}
+{{/ctx.results.0.aggregations.history_host.buckets}}
+
+
+Most recent critical errors:
+{{#ctx.results.0.hits.hits}}
+{{_source.spot.time_processed}}    {{_source.spot.history_host}}    {{_source.spot.error.type}}
+{{/ctx.results.0.hits.hits}}
+
+See details at {{kibanaBaseUrl}}/app/management/insightsAndAlerting/triggersActions/alert/{{alertId}}

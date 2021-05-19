@@ -1,0 +1,30 @@
+GET /err_default/_search
+{
+  "size": 5,
+  "query": {
+    "bool": {
+      "filter": [
+        {"range": {"spot.time_processed": {"gt": "now-1d", "lte": "now"}}}
+      ],
+      "must_not": [
+        {"terms": {"spot.error.type.keyword": ["HTTPError",
+                                               "ConflictError"]}}
+      ]
+    }
+  },
+  "sort" : [{ "spot.time_processed" : {"order" : "desc"}}],
+  "aggs": {
+    "history_host": {
+      "terms": {
+        "field": "spot.history_host.keyword"
+      },
+      "aggs" : {
+        "critical_errors": {
+          "terms": {
+            "field": "spot.error.type.keyword"
+          }
+        }
+      }
+    }
+  }
+}

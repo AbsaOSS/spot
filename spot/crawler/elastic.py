@@ -13,12 +13,13 @@
 
 import logging
 import elasticsearch
-from elasticsearch.exceptions import AuthorizationException
+from elasticsearch.exceptions import AuthorizationException, RequestError
 import pandas as pd
 from datetime import datetime
+import re
 import json
 
-from spot.crawler.commons import sizeof_fmt
+from spot.crawler.commons import sizeof_fmt, num_elements
 from spot.utils.config import SpotConfig
 from spot.utils.auth import auth_config
 import spot.utils.setup_logger
@@ -47,6 +48,7 @@ class Elastic:
         self._raw_index = self._conf.elastic_raw_index
         self._agg_index = self._conf.elastic_agg_index
         self._err_index = self._conf.elastic_err_index
+        self._limit_of_fields_increment = self._conf.elasticsearch_limit_of_fields_increment
 
         logger.debug("Initializing elasticsearch, checking indexes")
         self.log_indexes_stats()
@@ -65,25 +67,50 @@ class Elastic:
             return request_func(**kwargs)
 
     def _insert_item(self, index, uid, item):
-        if uid is not None:
-            res = self.__do_request(self._es.index,
-                                index = index,
-                                op_type = 'create',
-                                id = uid,
-                                body = item,
-                                ignore = [],
-                                request_timeout = REQUEST_TIMEOUT)
-        else:
-            res = self.__do_request(self._es.index, index = index,
-                                 op_type = 'create',
-                                 body = item,
-                                 ignore = [],
-                                 request_timeout = REQUEST_TIMEOUT)
+        try:
+            if uid:
+                res = self.__do_request(self._es.index,
+                                        index=index,
+                                        op_type='index', # overwrites docs with existing ids
+                                        id=uid,
+                                        body=item,
+                                        ignore=[],
+                                        request_timeout=REQUEST_TIMEOUT)
+            else:
+                res = self.__do_request(self._es.index,
+                                        index=index,
+                                        op_type='create',
+                                        body=item,
+                                        ignore=[],
+                                        request_timeout=REQUEST_TIMEOUT)
 
-        if res.get('result') == 'created':
-            logger.debug(f'{uid} added to {index}')
-        # else:
-        #    self._process_elasticsearch_error(res)
+            op_result = res.get('result')
+            doc_version = res.get('_version')
+            logger.debug(f'uid: {uid} {op_result} as version {doc_version} in index {index}')
+        except RequestError as req_err:
+            err_type = req_err.info['error']['type']
+            err_msg = req_err.info['error']['reason']
+            # if error is due to "Limit of total fields"
+            # increase the limit and retry
+            if err_type == 'illegal_argument_exception' and err_msg.startswith('Limit of total fields'):
+                item_fields = num_elements(item)
+                substr = re.search("^(Limit of total fields \[)\d+(\] in index)", err_msg).group()
+                current_limit_of_fileds = int(re.search("\d+",substr).group())
+                new_limit_of_fields = max(item_fields, current_limit_of_fileds + self._limit_of_fields_increment)
+
+                logger.warning(f'{err_msg}. Increasing the limit to: {new_limit_of_fields}')
+                self.increase_limit_of_fields(index, new_limit_of_fields)
+                self._insert_item(index, uid, item)
+            else:  # unknown RequestError
+                raise req_err
+
+    def increase_limit_of_fields(self, index, new_limit):
+        body = {"index.mapping.total_fields.limit": new_limit}
+        res = self.__do_request(self._es.indices.put_settings,
+                                index=index,
+                                body=body,
+                                preserve_existing=False,
+                                request_timeout=REQUEST_TIMEOUT)
 
     def save_app(self, app):
         uid = app.get('id')

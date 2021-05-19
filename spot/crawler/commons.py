@@ -70,11 +70,11 @@ def bytes_to_hdfs_block(size_bytes):
     return math.ceil(size_bytes / HDFS_block_size)
 
 
-def parse_to_bytes(size_str):
+def parse_to_bytes(size_str, default_multiplier=1):
     """ Parse size string with units into bytes, default unit is bytes when not specified."""
     # see units at https://spark.apache.org/docs/latest/configuration.html#spark-properties
     stripped = size_str.strip().lower()
-    multiplier = 1
+    multiplier = default_multiplier
     for unit in size_units.keys():
         if stripped.endswith(unit):
             stripped = stripped[:-len(unit)]
@@ -85,6 +85,17 @@ def parse_to_bytes(size_str):
     else:
         logger.warning(f'Failed to parse string {size_str} to bytes')
         return None
+
+
+# 1 MiB = 1024 * 1024 bytes = 1048576 bytes
+# see units used in Spark properties at https://spark.apache.org/docs/latest/configuration.html#spark-properties
+def parse_to_bytes_default_MiB(size_str):
+    return parse_to_bytes(size_str, default_multiplier=1048576)
+
+# 1 KiB = 1024 bytes
+# see units used in Spark properties at https://spark.apache.org/docs/latest/configuration.html#spark-properties
+def parse_to_bytes_default_KiB(size_str):
+    return parse_to_bytes(size_str, default_multiplier=1024)
 
 
 def parse_to_ms(time_str):
@@ -148,4 +159,10 @@ def get_attribute(doc, path_list):
     else:  # path_list is empty
         return doc
 
+
+def num_elements(x):
+    if isinstance(x, dict):
+        return sum([num_elements(_x) for _x in x.values()])
+    else:
+        return 1
 

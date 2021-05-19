@@ -167,7 +167,7 @@ The Enceladus module provides integration capabilities for Spot usage with [Ence
     raw_index=spot\_raw\_\<cluster_name\>\_\<id\>,  
     agg_index=spot\_agg\_\<cluster_name\>\_\<id\>,  
     err_index=spot\_err\_\<cluster_name\>\_\<id\>  
-- Configure logging in /spot/config/logging_confg.ini (see [Logging](https://docs.python.org/2/library/logging.config.html#configuration-file-format))
+- Configure logging: in /spot/config copy logging_confg.template to logging_confg.ini and adjust the parameters (see [Logging](https://docs.python.org/2/library/logging.config.html#configuration-file-format))
 
 ### Multicluster configuration
 It is possible to monitor multiple clusters (each with its own Spark History server) with Spot. 
@@ -177,7 +177,7 @@ If the index names follow the defined pattern (spot\_\<raw/agg/err\>\_\<cluster_
 the data can be visualized in Kibana using the setup provided in [Kibana directory](spot/kibana/). 
 There the data can be filtered by history_host.keyword if required.
 
-### Running Crawler
+### Run Crawler
 `cd spot/crawler`
 
 `python3 crawler.py [options]`
@@ -188,10 +188,21 @@ There the data can be filtered by history_host.keyword if required.
 
 This will start the main loop of the crawler. It gets new completed apps, processes and stores them in the database. When all the new apps are processed the crawler sleeps `sleep_seconds` (see config.ini) before the next iteration. To exit the loop, kill the process.
 
-### Importing Kibana Demo Dashboard
+### Import Kibana Demo Dashboard
 [Kibana directory](spot/kibana/) contains objects which can be 
 [imported to Kibana](https://www.elastic.co/guide/en/kibana/current/managing-saved-objects.html#:~:text=Importedit,already%20in%20Kibana%20are%20overwritten.). 
-For example, there is a [demo dashboard](spot/kibana/spot_demo.ndjson) demonstrating basic statistics of Spark applications.
+For example, there is a [demo dashboard](spot/kibana/dashboards/spot_demo.ndjson) demonstrating basic statistics of Spark applications.
+
+### Configure Alerts
+To trigger an [alert in Kibana](https://www.elastic.co/guide/en/kibana/master/alerting-getting-started.html)  
+when a critical error occurs in Spot (e.g. Spark History server is in an incorrect state) 
+the [example queries](spot/kibana/alerting/internal_errors/spot_severe_internal_errors.txt) can be used.
+
+The Kibana alerts can be configured to [use an AWS SNS topic as a destination](https://aws.amazon.com/blogs/big-data/setting-alerts-in-amazon-elasticsearch-service/), which can then be configured to send notifications via email, etc.
+ In addition, an [encrypted SNS topic](https://aws.amazon.com/blogs/compute/encrypting-messages-published-to-amazon-sns-with-aws-kms/) can be used (recommended) 
+ which requires additional configuration of an IAM role, as documented in the referenced tutorial. 
+ An example of [generating an alert message](spot/kibana/alerting/internal_errors/spot_severe_internal_errors_message.mustache) used together with the example query is provided.
+
 
 ### Common issues
 <b>Issue</b>: RequestError(400, 'illegal_argument_exception', 'Limit of total fields [1000] in index [<spot_index>] has been exceeded')

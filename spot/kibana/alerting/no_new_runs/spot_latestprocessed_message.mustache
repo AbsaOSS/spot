@@ -1,0 +1,14 @@
+Monitor {{ctx.monitor.name}} just entered alert status. Please investigate the issue.
+- Trigger: {{ctx.trigger.name}}
+- Severity: {{ctx.trigger.severity}}
+- Period start: {{ctx.periodStart}}
+- Period end: {{ctx.periodEnd}}
+
+Latest runs processed:
+
+history host                                            |  max spot.time_processed   |  max attempt.endTime
+
+{{#ctx.results.0.aggregations.history_hosts.buckets}}
+  {{key}} | {{max_time_processed.value_as_string}}  | {{max_endTime.value_as_string}}
+{{/ctx.results.0.aggregations.history_hosts.buckets}}
+See details at {{kibanaBaseUrl}}/app/management/insightsAndAlerting/triggersActions/alert/{{alertId}}

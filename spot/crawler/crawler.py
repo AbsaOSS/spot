@@ -14,7 +14,7 @@
 import logging
 import time
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from pprint import pprint
 
 from urllib.parse import urlparse
@@ -93,6 +93,7 @@ class Crawler:
                  save_obj=DefaultSaver(),
                  last_date=None,
                  seen_app_ids=set(),
+                 completion_timeout_seconds=0,
                  skip_exceptions=False):
         self._agg = HistoryAggregator(spark_history_url)
         self._history_host = urlparse(spark_history_url).hostname
@@ -100,6 +101,7 @@ class Crawler:
         self._save_obj = save_obj
         self._app_specific_obj = app_specific_obj
         self.skip_exceptions = skip_exceptions
+        self.completion_timeout_seconds = completion_timeout_seconds
 
         self._latest_seen_date = last_date
         # list of apps with the same last date, seen in the previous iteration
@@ -119,7 +121,7 @@ class Crawler:
                 'error': {
                     'type': e.__class__.__name__,
                     'message': error_msg,
-                    'stage': 'raw'
+                    'stage': stage_name
                 }
             }
         }
@@ -175,9 +177,12 @@ class Crawler:
 
     def process_new_runs(self):
         processing_start = datetime.now()
+        max_end_date = datetime.now() - timedelta(seconds=self.completion_timeout_seconds)
+
         logger.info(
-            f"Fetching new apps, completed since {self._latest_seen_date}")
+            f"Fetching new apps, completed from {self._latest_seen_date} to {max_end_date}")
         apps = self._agg.next_app(min_end_date=self._latest_seen_date,
+                                  max_end_date=max_end_date,
                                   app_status='completed')
         new_counter = 0
         matched_counter = 0

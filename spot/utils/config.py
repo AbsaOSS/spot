@@ -65,6 +65,13 @@ class SpotConfig(Config):
         return 60
 
     @property
+    def completion_timeout_seconds(self):
+        str_val = self.get_property('CRAWLER', 'completion_timeout_seconds')
+        if str_val.isdigit():
+            return int(str_val)
+        return 300
+
+    @property
     def crawler_skip_exceptions(self):
         if self.get_boolean('CRAWLER', 'skip_exceptions'):
             return True
@@ -143,6 +150,13 @@ class SpotConfig(Config):
     @property
     def elasticsearch_role_name(self):
         return self.get_property('SPOT_ELASTICSEARCH', 'elasticsearch_role_name')
+
+    @property
+    def elasticsearch_limit_of_fields_increment(self):
+        str_val = self.get_property('SPOT_ELASTICSEARCH', 'limit_of_fields_increment')
+        if str_val.isdigit():
+            return int(str_val)
+        return 100
 
     @property
     def menas_api_url(self):

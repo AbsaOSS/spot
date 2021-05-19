@@ -15,7 +15,8 @@ import logging
 from datetime import datetime
 
 import spot.crawler.history_api as history_api
-from spot.crawler.commons import get_last_attempt, parse_to_bytes, string_to_bool, parse_to_ms
+from spot.crawler.commons import get_last_attempt, parse_to_bytes, parse_to_bytes_default_MiB, parse_to_bytes_default_KiB,\
+    string_to_bool, parse_to_ms
 import spot.utils.setup_logger
 
 logger = logging.getLogger(__name__)
@@ -63,7 +64,14 @@ _remove_keys_dict = {
         'spark_yarn_app_container_log_dir',
         'spark_history_kerberos_keytab',
         'spark_org_apache_hadoop_yarn_server_webproxy_amfilter_AmIpFilter_param_RM_HA_URLS',
-        'spark_history_kerberos_principal'
+        'spark_history_kerberos_principal',
+        'spark_driver_extraJavaOptions',
+        'spark_executor_extraJavaOptions',
+        'spark_executorEnv_PYTHONPATH',
+        'spark_yarn_am_extraJavaOptions',
+        'spark_yarn_keytab',
+        'spark_yarn_principal'
+
 
     ],
     'runtime': [
@@ -77,7 +85,7 @@ _cast_sparkProperties_dict = {
     'spark_executor_instances': int,
     'spark_driver_cores': int,
     'spark_executor_cores': int,
-    'sparkProperties.spark_dynamicAllocation_maxExecutors': int,
+    'spark_dynamicAllocation_maxExecutors': int,
     'spark_dynamicAllocation_minExecutors': int,
     'spark_yarn_maxAppAttempts': int,
 
@@ -89,7 +97,7 @@ _cast_sparkProperties_dict = {
     'spark_hadoop_yarn_timeline-service_enabled': string_to_bool,
     'spark_dynamicAllocation_enabled': string_to_bool,
     'spark_history_fs_cleaner_enabled': string_to_bool,
-    'spark.rdd.compress': string_to_bool,
+    'spark_rdd_compress': string_to_bool,
     'spark_shuffle_service_enabled': string_to_bool,
     'spark_speculation': string_to_bool,
     'spark_sql_adaptive_enabled': string_to_bool,
@@ -99,10 +107,27 @@ _cast_sparkProperties_dict = {
 
     'spark_driver_memory': parse_to_bytes,
     'spark_executor_memory': parse_to_bytes,
-    'spark_yarn_executor_memoryOverhead': parse_to_bytes,
-    'sparkProperties.spark_driver_maxResultSize': parse_to_bytes,
+    'spark_driver_maxResultSize': parse_to_bytes,
     'spark_sql_adaptive_shuffle_targetPostShuffleInputSize': parse_to_bytes,
     'spark_sql_autoBroadcastJoinThreshold': parse_to_bytes,
+    'spark_files_maxPartitionBytes': parse_to_bytes,
+    'spark_files_openCostInBytes': parse_to_bytes,
+
+    'spark_driver_memoryOverhead': parse_to_bytes_default_MiB,
+    'spark_executor_memoryOverhead': parse_to_bytes_default_MiB,
+    'spark_yarn_driver_memoryOverhead': parse_to_bytes_default_MiB,
+    'spark_yarn_executor_memoryOverhead': parse_to_bytes_default_MiB,
+    'spark_executor_pyspark_memory': parse_to_bytes_default_MiB,
+    'spark_reducer_maxSizeInFlight': parse_to_bytes_default_MiB,
+    'spark_kryoserializer_buffer_max': parse_to_bytes_default_MiB,
+    'spark_rpc_message_maxSize': parse_to_bytes_default_MiB,
+
+    'spark_shuffle_file_buffer': parse_to_bytes_default_KiB,
+    'spark_eventLog_buffer_kb': parse_to_bytes_default_KiB,
+    'spark_kryoserializer_buffer': parse_to_bytes_default_KiB,
+    'spark_broadcast_blockSize': parse_to_bytes_default_KiB,
+
+
 
     'spark_sql_broadcastTimeout': parse_to_ms,
     'spark_executor_heartbeatInterval': parse_to_ms,
