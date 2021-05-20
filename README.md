@@ -195,12 +195,12 @@ For example, there is a [demo dashboard](spot/kibana/dashboards/spot_demo.ndjson
 
 ### Configure Alerts
 To trigger an [alert in Kibana](https://www.elastic.co/guide/en/kibana/master/alerting-getting-started.html)  
-when a critical error occurs in Spot (e.g. Spark History server is in a wrong state) 
+when a critical error occurs in Spot (e.g. Spark History server is in an incorrect state) 
 the [example queries](spot/kibana/alerting/internal_errors/spot_severe_internal_errors.txt) can be used.
 
-The Kibana alerts can be configured to [use AWS SNS topic as a destination](https://aws.amazon.com/blogs/big-data/setting-alerts-in-amazon-elasticsearch-service/), where it can further can be subscribed to via email.
+The Kibana alerts can be configured to [use an AWS SNS topic as a destination](https://aws.amazon.com/blogs/big-data/setting-alerts-in-amazon-elasticsearch-service/), which can then be configured to send notifications via email, etc.
  In addition, an [encrypted SNS topic](https://aws.amazon.com/blogs/compute/encrypting-messages-published-to-amazon-sns-with-aws-kms/) can be used (recommended) 
- which requires an additional configuration of IAM role as explained in the referred tutorial. 
+ which requires additional configuration of an IAM role, as documented in the referenced tutorial. 
  An example of [generating an alert message](spot/kibana/alerting/internal_errors/spot_severe_internal_errors_message.mustache) used together with the example query is provided.
 
 

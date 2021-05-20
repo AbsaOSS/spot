@@ -10,9 +10,9 @@ sleep_seconds = 300
 # After an attempt has failed but before a new attempt is started
 # the application may appear as completed in Spark history. Later on,
 # when the new attempt is finished the application will appear as completed
-# again but with an updated completion time. As the result, Spot crawler may
-# encounter such application multiple times. To avoid repeated processing,
-# crawler processes only the runs which were completed at least this many seconds ago.
+# again but with an updated completion time. As the result, the Spot crawler may
+# encounter this application multiple times. To avoid repeated processing,
+# the crawler processes only the runs which were completed at least this many seconds ago.
 # The default is 300 seconds.
 completion_timeout_seconds = 300
 
@@ -49,7 +49,7 @@ auth_type = None
 #elasticsearch_role_name =
 
 
-# By default elasticsearch has a limit of total fields of 1000 per document.
+# By default elasticsearch has a limit of 1000 total fields per index.
 # When the value is exceeded Spot incrementally increases the setting.
 # By default the increment step is 100.
 #limit_of_fields_increment = 100
