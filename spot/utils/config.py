@@ -109,7 +109,7 @@ class SpotConfig(Config):
 
     @property
     def auth_type(self):
-        return self.get_property('SPOT_ELASTICSEARCH', 'auth_type')
+        return self.get_property('SPOT_ELASTICSEARCH', 'auth_type').lower()
 
     @property
     def oauth_username(self):

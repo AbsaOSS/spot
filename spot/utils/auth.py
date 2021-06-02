@@ -25,12 +25,12 @@ def auth_config(conf):
         logger.debug("AuthType of 'None' found")
         return
 
-    if conf.auth_type == "Direct":
-        logger.debug("AuthType of 'Direct' found")
+    if conf.auth_type == "direct":
+        logger.debug("AuthType of 'direct' found")
         return (conf.elastic_username, conf.elastic_password)
 
-    if conf.auth_type == "Cognito":
-        logger.debug("AuthType of 'Cognito' found")
+    if conf.auth_type == "cognito":
+        logger.debug("AuthType of 'cognito' found")
         # Retrieve IdToken based on username & password
         client = boto3.client('cognito-idp',
                                config=Config(signature_version=UNSIGNED,
