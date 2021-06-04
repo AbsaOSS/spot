@@ -31,10 +31,10 @@ raw_index = raw_default
 agg_index = agg_default
 err_index = err_default
 # The following authentication types for Elasticsearch are currently supported:
-#   None - no parameters required           (unauthenticated)
-#   Direct - username and password required (authenticated via username & password)
-#   cognito - all parameters required       (authenticated via USER_PASSWORD_AUTH through SRP via Congito)
-auth_type = None
+#   none (leave blank) - no parameters required           (unauthenticated)
+#   direct             - username and password required   (authenticated via username & password)
+#   cognito            - all parameters required          (authenticated via USER_PASSWORD_AUTH through SRP via Congito)
+auth_type =
 # Required if using direct/cognito
 #username =
 #password =

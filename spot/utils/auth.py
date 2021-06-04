@@ -21,8 +21,8 @@ from requests_aws4auth import AWS4Auth
 logger = logging.getLogger(__name__)
 
 def auth_config(conf):
-    if not conf.auth_type or conf.auth_type == "None":
-        logger.debug("AuthType of 'None' found")
+    if not conf.auth_type:
+        logger.warning("No AuthType found, proceeding without Elasticsearch authentication")
         return
 
     if conf.auth_type == "direct":
