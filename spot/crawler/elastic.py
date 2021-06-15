@@ -54,6 +54,7 @@ class Elastic:
         # YARN indexes
         self._yarn_clust_index = self._conf.yarn_clust_index
         self._yarn_apps_index = self._conf.yarn_apps_index
+        self._yarn_scheduler_index = self._conf.yarn_scheduler_index
 
         self._limit_of_fields_increment = self._conf.elasticsearch_limit_of_fields_increment
 
@@ -220,8 +221,18 @@ class Elastic:
 
     def save_yarn_apps(self, apps):
         res = self.__do_request(bulk, self._es, self._prepare_yarn_apps(apps))
-        #elasticsearch.helpers.bulk(self._es, self._prepare_yarn_apps(apps))
 
+    def _prepare_yarn_scheduler_docs(self, docs):
+        for doc in docs:
+            item = dict()
+            item['_index'] = self._yarn_scheduler_index
+            item['_op_type'] = 'create'
+            item['_type'] = '_doc'
+            item['_source'] = doc
+            yield item
+
+    def save_yarn_scheduler_docs(self, docs):
+        res = self.__do_request(bulk, self._es, self._prepare_yarn_scheduler_docs(docs))
 
     # STATS QUERIES
 

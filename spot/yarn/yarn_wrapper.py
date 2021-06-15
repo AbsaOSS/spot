@@ -134,10 +134,8 @@ class YarnWrapper:
         doc['clusterMetrics'] = self._api.get_cluster_metrics().get('clusterMetrics')
         #doc['scheduler'] = self._api.get_cluster_scheduler()
         doc['appStatInfo'] = self.get_app_stats().get('appStatInfo')
-        doc['spot'] = {
-            'time_processed': datetime.utcnow(),
-            'yarn_host': self._host
-        }
+        doc['schedulerInfo'] = self.get_scheduler_stats_single_doc()
+        self._add_spot_meta(doc)
         return doc
 
     def get_app_stats(self, states=None, types=_default_apptypes):
@@ -153,6 +151,132 @@ class YarnWrapper:
                 doc['appStatInfo'][app_type][state] = item.get('count')
         return doc
 
+    def get_scheduler_stats_single_doc(self):
+        res = self._api.get_cluster_scheduler()
+        doc = res.get('scheduler').get('schedulerInfo')
+
+        # process queueCapacitiesByPartition
+        queueCapacitiesByPartition = doc.get('capacities').get('queueCapacitiesByPartition')
+        parsed_capacities = {}
+        for item in queueCapacitiesByPartition:
+            partitionName = item.get('partitionName')
+            if partitionName == '':
+                partitionName = '_default_'
+            parsed_capacities[partitionName] = item
+        doc['capacities']['queueCapacitiesByPartition'] = parsed_capacities
+
+        # process helth.lastRunDetails
+        lastRunDetails = doc.get('health').get('lastRunDetails')
+        parsed_run_details = {}
+        for item in lastRunDetails:
+            operation = item.get('operation')
+            parsed_run_details[operation] = item
+        doc['health']['lastRunDetails'] = parsed_run_details
+
+        # process queues
+        queues = doc.get('queues').get('queue')
+        q = {}
+        for queue in queues:
+            queueName = queue.get('queueName')
+            # process queueCapacitiesByPartition
+            queueCapacitiesByPartition = queue.get('capacities').get('queueCapacitiesByPartition')
+            capacities = {}
+            for cap in queueCapacitiesByPartition:
+                partitionName = cap.get('partitionName')
+                if partitionName == '':
+                    partitionName = '_default_'
+                capacities[partitionName] = cap
+            queue['capacities']['queueCapacitiesByPartition'] = capacities
+            # process resourceUsagesByPartition
+            resourceUsagesByPartition = queue.get('resources').get('resourceUsagesByPartition')
+            resources = {}
+            for res in resourceUsagesByPartition:
+                partitionName = res.get('partitionName')
+                if partitionName == '':
+                    partitionName = '_default_'
+                resources[partitionName] = res
+            queue['resources']['resourceUsagesByPartition'] = resources
+            # process users
+            if queue.get('users') is not None:
+                users = queue.get('users').get('user')
+                u = {}
+                for user in users:
+                    username = user.get('username')
+                    # process user's resourceUsagesByPartition
+                    resourceUsagesByPartition = user.get('resources').get('resourceUsagesByPartition')
+                    resources = {}
+                    for res in resourceUsagesByPartition:
+                        partitionName = res.get('partitionName')
+                        if partitionName == '':
+                            partitionName = '_default_'
+                        resources[partitionName] = res
+                    user['resources']['resourceUsagesByPartition'] = resources
+                    u[username] = user
+                queue['users'] = u
+
+            q[queueName] = queue
+        doc['queues'] = q
+
+        return doc
+
+    def get_scheduler_docs(self):
+        res = self._api.get_cluster_scheduler()
+
+        # process queueCapacitiesByPartition
+        queueCapacitiesByPartition = res.get('scheduler').get('schedulerInfo').get('capacities').get('queueCapacitiesByPartition')
+
+        for cap in queueCapacitiesByPartition:
+            self._add_spot_meta(cap)
+            cap['spot']['doc_type'] = 'queueCapacitiesByPartition'
+            yield cap
+
+        # process queues
+        queues = res.get('scheduler').get('schedulerInfo').get('queues').get('queue')
+        for queue in queues:
+            queueName = queue.get('queueName')
+            # process queueCapacitiesByPartition
+            queueCapacitiesByPartition = queue.get('capacities').get('queueCapacitiesByPartition')
+            for cap in queueCapacitiesByPartition:
+                cap['queueName'] = queueName
+                self._add_spot_meta(cap)
+                cap['spot']['doc_type'] = 'queue_queueCapacitiesByPartition'
+                yield cap
+            queue.pop('capacities')
+
+            # process resourceUsagesByPartition
+            resourceUsagesByPartition = queue.get('resources').get('resourceUsagesByPartition')
+            for res in resourceUsagesByPartition:
+                res['queueName'] = queueName
+                self._add_spot_meta(res)
+                res['spot']['doc_type'] = 'queue_resourceUsagesByPartition'
+                yield res
+
+            queue.pop('resources')
+            # process users
+            if queue.get('users') is not None:
+                users = queue.get('users').get('user')
+                for user in users:
+                    username = user.get('username')
+                    # process user's resourceUsagesByPartition
+                    resourceUsagesByPartition = user.get('resources').get('resourceUsagesByPartition')
+                    for res in resourceUsagesByPartition:
+                        res['queueName'] = queueName
+                        res['username'] = username
+                        self._add_spot_meta(res)
+                        res['spot']['doc_type'] = 'user_resourceUsagesByPartition'
+                        yield res
+                    user.pop('resources')
+                    user['queueName'] = queueName
+                    self._add_spot_meta(user)
+                    user['spot']['doc_type'] = 'user'
+                    yield user
+
+            queue.pop('users')
+            self._add_spot_meta(queue)
+            queue['spot']['doc_type'] = 'queue'
+            yield queue
+
+
 
 def main():
     bas_uri = 'http://jhbpsr000001014.corp.dsarena.com:8088/ws/v1'
@@ -162,12 +286,15 @@ def main():
     #app = yarn.get_app(app_id)
     #pprint(app)
 
-    apps = yarn.get_apps(limit=3)
-    for app in apps:
-        pprint(app)
+    #apps = yarn.get_apps(limit=3)
+    #for app in apps:
+    #    pprint(app)
 
     #clust_stats = yarn.get_cluster_stats()
     #pprint(clust_stats)
+
+    for doc in yarn.get_scheduler_docs():
+        pprint(doc)
 
 if __name__ == '__main__':
     main()

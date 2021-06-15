@@ -188,8 +188,13 @@ class SpotConfig(Config):
         return self.get_property('YARN', 'yarn_apps_index')
 
     @property
+    def yarn_scheduler_index(self):
+        return self.get_property('YARN', 'yarn_scheduler_index')
+
+    @property
     def yarn_sleep_seconds(self):
         str_val = self.get_property('YARN', 'yarn_sleep_seconds')
         if str_val.isdigit():
             return int(str_val)
         return 60
+

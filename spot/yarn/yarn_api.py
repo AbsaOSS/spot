@@ -143,25 +143,25 @@ def main():
     #cluster_metrics = yarn_cli.get_cluster_metrics()
     #pprint(cluster_metrics)
 
-    #cluster_scheduler = yarn_cli.get_cluster_scheduler()
-    #pprint(cluster_scheduler)
+    cluster_scheduler = yarn_cli.get_cluster_scheduler()
+    pprint(cluster_scheduler)
 
 
     #appstatistics = yarn_cli.get_appstatistics(applicationTypes=['spark'])
     #pprint(appstatistics)
 
-    app_id='application_1618993715398_231994'
+    #app_id='application_1618993715398_231994'
 
-    app = yarn_cli.get_app(app_id)
-    pprint(app)
+    #app = yarn_cli.get_app(app_id)
+    #pprint(app)
 
-    attempts = yarn_cli.get_appattempts(app_id)
-    pprint(attempts)
+    #attempts = yarn_cli.get_appattempts(app_id)
+    #pprint(attempts)
 
-    att = attempts['appAttempts']['appAttempt'][0]['appAttemptId']
+    #att = attempts['appAttempts']['appAttempt'][0]['appAttemptId']
 
-    containers=yarn_cli.get_appattemp_containers(app_id,att)
-    pprint(containers)
+    #containers=yarn_cli.get_appattemp_containers(app_id,att)
+    #pprint(containers)
 
     #states=['FINISHED']
     #datetime_format = "%Y-%m-%dT%H:%M:%S"

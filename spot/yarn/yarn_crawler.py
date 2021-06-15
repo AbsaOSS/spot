@@ -53,9 +53,11 @@ def main():
         # apps stats
         finishedTimeBegin = elastic.get_yarn_latest_finished_time()
         apps = yarn.get_apps(states=['FINISHED'],finishedTimeBegin=finishedTimeBegin)
-
         elastic.save_yarn_apps(apps)
+
         #for app in apps:
+        scheduler_docs = yarn.get_scheduler_docs()
+        elastic.save_yarn_scheduler_docs(scheduler_docs)
 
 
         time.sleep(conf.yarn_sleep_seconds)
