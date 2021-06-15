@@ -40,26 +40,54 @@ def main():
     elastic = Elastic(conf)
     yarn = YarnWrapper(conf.yarn_api_base_url)
 
+    def _handle_processing_exception_(e, stage_name):
+        error_msg = str(e)
+        logger.warning(
+            f"Failed to process {stage_name}: {error_msg}")
+        err = {
+            'spot': {
+                'time_processed': datetime.now(),
+                'yarn_host': conf.yarn_api_base_url,
+                'error': {
+                    'type': e.__class__.__name__,
+                    'message': error_msg,
+                    'stage': stage_name
+                }
+            }
+        }
+        elastic.save_err(err)
+        if not conf.crawler_skip_exceptions:
+            logger.warning('Skipping malformed metadata is disabled')
+            raise e
 
 
     while True:
         logger.debug(f"Getting data from YARN at {conf.yarn_api_base_url}")
+
         # cluster stats
-        clust_stats = yarn.get_cluster_stats()
-        #pprint(clust_stats)
-        elastic.save_yarn_cluster_stats(clust_stats)
-        elastic.log_indexes_stats()
+        try:
+            clust_stats = yarn.get_cluster_stats()
+            elastic.save_yarn_cluster_stats(clust_stats)
+        except Exception as e:
+            _handle_processing_exception_(e, 'yarn_cluster_stats')
+
 
         # apps stats
-        finishedTimeBegin = elastic.get_yarn_latest_finished_time()
-        apps = yarn.get_apps(states=['FINISHED'],finishedTimeBegin=finishedTimeBegin)
-        elastic.save_yarn_apps(apps)
+        try:
+            finishedTimeBegin = elastic.get_yarn_latest_finished_time()
+            apps = yarn.get_apps(states=['FINISHED'],finishedTimeBegin=finishedTimeBegin)
+            elastic.save_yarn_apps(apps)
+        except Exception as e:
+            _handle_processing_exception_(e, 'yarn_apps')
 
         #for app in apps:
-        scheduler_docs = yarn.get_scheduler_docs()
-        elastic.save_yarn_scheduler_docs(scheduler_docs)
+        try:
+            scheduler_docs = yarn.get_scheduler_docs()
+            elastic.save_yarn_scheduler_docs(scheduler_docs)
+        except Exception as e:
+            _handle_processing_exception_(e, 'yarn_scheduler_docs')
 
-
+        elastic.log_indexes_stats()
         time.sleep(conf.yarn_sleep_seconds)
 
 
