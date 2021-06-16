@@ -155,64 +155,19 @@ class YarnWrapper:
         res = self._api.get_cluster_scheduler()
         doc = res.get('scheduler').get('schedulerInfo')
 
-        # process queueCapacitiesByPartition
-        queueCapacitiesByPartition = doc.get('capacities').get('queueCapacitiesByPartition')
-        parsed_capacities = {}
-        for item in queueCapacitiesByPartition:
-            partitionName = item.get('partitionName')
-            if partitionName == '':
-                partitionName = '_default_'
-            parsed_capacities[partitionName] = item
-        doc['capacities']['queueCapacitiesByPartition'] = parsed_capacities
-
-        # process helth.lastRunDetails
-        lastRunDetails = doc.get('health').get('lastRunDetails')
-        parsed_run_details = {}
-        for item in lastRunDetails:
-            operation = item.get('operation')
-            parsed_run_details[operation] = item
-        doc['health']['lastRunDetails'] = parsed_run_details
+        # drop excessive details
+        doc.pop('capacities')
+        doc.pop('health')
 
         # process queues
         queues = doc.get('queues').get('queue')
         q = {}
         for queue in queues:
             queueName = queue.get('queueName')
-            # process queueCapacitiesByPartition
-            queueCapacitiesByPartition = queue.get('capacities').get('queueCapacitiesByPartition')
-            capacities = {}
-            for cap in queueCapacitiesByPartition:
-                partitionName = cap.get('partitionName')
-                if partitionName == '':
-                    partitionName = '_default_'
-                capacities[partitionName] = cap
-            queue['capacities']['queueCapacitiesByPartition'] = capacities
-            # process resourceUsagesByPartition
-            resourceUsagesByPartition = queue.get('resources').get('resourceUsagesByPartition')
-            resources = {}
-            for res in resourceUsagesByPartition:
-                partitionName = res.get('partitionName')
-                if partitionName == '':
-                    partitionName = '_default_'
-                resources[partitionName] = res
-            queue['resources']['resourceUsagesByPartition'] = resources
-            # process users
-            if queue.get('users') is not None:
-                users = queue.get('users').get('user')
-                u = {}
-                for user in users:
-                    username = user.get('username')
-                    # process user's resourceUsagesByPartition
-                    resourceUsagesByPartition = user.get('resources').get('resourceUsagesByPartition')
-                    resources = {}
-                    for res in resourceUsagesByPartition:
-                        partitionName = res.get('partitionName')
-                        if partitionName == '':
-                            partitionName = '_default_'
-                        resources[partitionName] = res
-                    user['resources']['resourceUsagesByPartition'] = resources
-                    u[username] = user
-                queue['users'] = u
+            # drop excessive details
+            queue.pop('capacities')
+            queue.pop('resources')
+            queue.pop('users')
 
             q[queueName] = queue
         doc['queues'] = q
@@ -290,11 +245,11 @@ def main():
     #for app in apps:
     #    pprint(app)
 
-    #clust_stats = yarn.get_cluster_stats()
-    #pprint(clust_stats)
+    clust_stats = yarn.get_cluster_stats()
+    pprint(clust_stats)
 
-    for doc in yarn.get_scheduler_docs():
-        pprint(doc)
+    #for doc in yarn.get_scheduler_docs():
+    #    pprint(doc)
 
 if __name__ == '__main__':
     main()
