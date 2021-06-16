@@ -164,8 +164,8 @@ The Enceladus module provides integration capabilities for Spot usage with [Ence
 - Create configuration: in /spot/config copy config.ini.template to config.ini and set parameters from the above step
     - For a new deployment set new index names which do not exist in elasticsearch. 
     In order to be compatible with the provided [Kibana objects](spot/kibana/) the indexes should match the following patterns:  
-    raw_index=spot\_raw\_\<cluster_name\>\_\<id\>,  
-    agg_index=spot\_agg\_\<cluster_name\>\_\<id\>,  
+    raw_index=spot\_raw\_\<cluster_name\>\_\<id\>  
+    agg_index=spot\_agg\_\<cluster_name\>\_\<id\>  
     err_index=spot\_err\_\<cluster_name\>\_\<id\>  
 - Configure logging: in /spot/config copy logging_confg.template to logging_confg.ini and adjust the parameters (see [Logging](https://docs.python.org/2/library/logging.config.html#configuration-file-format))
 
@@ -203,7 +203,27 @@ The Kibana alerts can be configured to [use an AWS SNS topic as a destination](h
  which requires additional configuration of an IAM role, as documented in the referenced tutorial. 
  An example of [generating an alert message](spot/kibana/alerting/internal_errors/spot_severe_internal_errors_message.mustache) used together with the example query is provided.
 
+## YARN integration
+Spot can import and visualize monitoring metrics from YARN API. 
+The import is performed in a separate [yarn_crawler.py](spot/yarn/yarn_crawler.py) process. 
+This process should be run on a host where it can access YARN API and Elasticserach. 
+It uses the same configuration `config.ini` as the main `crawler.py` process, where some of the configurations are shared and more are added for YARN specifically.
+The relevant parameters are:
+ - `yarn_api_base_url = http://localhost:8088/ws/v1` base url to access YARN API
+ - `yarn_sleep_seconds = 60` sleep time between API calls
+ - Elasticsearch indexes:
+   - `yarn_clust_index = spot_yarn_cluster_<cluster_name>_<id>` stores general cluster statistics sampled at each iteration
+   - `yarn_apps_index = spot_yarn_apps_<cluster_name>_<id>` stores details of completed applications
+   - `yarn_scheduler_index = spot_yarn_scheduler_<cluster_name>_<id>` stores statistics sampled from the scheduler. It contains documents of multiple types (which can be filtered by `spot.doc_type` filed) for queues, partitions and users
+   - `err_index` is shared with the main crawler config. It stores exception messages appeared during yarn_craler run
+ - `skip_exceptions` parameter is shared with the main crawler
+ - Elasticsearch configuration (URL and authentication) is shared with the main crawler 
 
+[Kibana directory](spot/kibana/) contains dashboards which visualize the data collected from YARN. 
+Description of available metrics can be found in [YARN documentation](https://hadoop.apache.org/docs/current/hadoop-yarn/hadoop-yarn-site/ResourceManagerRest.html). 
+
+It is planned to enrich Spark jobs metadata with the YARN metadata in future. 
+For instance it would add exact details which are not available from Spark History alone, e.g. vCoresSeconds and memorySeconds.
 ### Common issues
 <b>Issue</b>: RequestError(400, 'illegal_argument_exception', 'Limit of total fields [1000] in index [<spot_index>] has been exceeded')
 
