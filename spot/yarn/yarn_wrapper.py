@@ -12,15 +12,16 @@
 # limitations under the License.
 
 import logging
-import requests
 from pprint import pprint
 from datetime import datetime
 
-import spot.utils.setup_logger
+
 from spot.crawler.commons import default_enrich
 from spot.enceladus.classification import get_classification, is_enceladus_app, get_tag
 import spot.yarn.yarn_api as yarn_api
 from urllib.parse import urlparse
+
+import spot.utils.setup_logger
 
 logger = logging.getLogger(__name__)
 
@@ -132,7 +133,6 @@ class YarnWrapper:
         doc = dict()
         #doc['info'] = self._api.get_cluster_info()
         doc['clusterMetrics'] = self._api.get_cluster_metrics().get('clusterMetrics')
-        #doc['scheduler'] = self._api.get_cluster_scheduler()
         doc['appStatInfo'] = self.get_app_stats().get('appStatInfo')
         doc['schedulerInfo'] = self.get_scheduler_stats_single_doc()
         self._add_spot_meta(doc)
@@ -232,11 +232,11 @@ class YarnWrapper:
             yield queue
 
 
-
 def main():
-    bas_uri = 'http://jhbpsr000001014.corp.dsarena.com:8088/ws/v1'
-    yarn = YarnWrapper(bas_uri)
-    app_id = 'application_1618993715398_405265'
+    # for testing/debugging purposes
+    base_uri = ''
+    yarn = YarnWrapper(base_uri)
+    #app_id = ''
 
     #app = yarn.get_app(app_id)
     #pprint(app)
@@ -245,11 +245,12 @@ def main():
     #for app in apps:
     #    pprint(app)
 
-    clust_stats = yarn.get_cluster_stats()
-    pprint(clust_stats)
+    #clust_stats = yarn.get_cluster_stats()
+    #pprint(clust_stats)
 
     #for doc in yarn.get_scheduler_docs():
     #    pprint(doc)
+
 
 if __name__ == '__main__':
     main()

@@ -12,8 +12,6 @@
 # limitations under the License.
 
 import logging
-import requests
-from pprint import pprint
 from datetime import datetime
 import time
 from urllib.parse import urlparse
@@ -30,11 +28,6 @@ def main():
     logger.info(f'Starting YARN crawler')
     conf = SpotConfig()
 
-    # yarn_api_base_url
-    #yarn_clust_index = spot_yarn_cluster_1
-    #yarn_apps_index = spot_yarn_cluster_1
-    #yarn_sleep_seconds
-
     host = urlparse(conf.yarn_api_base_url).hostname
 
     elastic = Elastic(conf)
@@ -47,7 +40,7 @@ def main():
         err = {
             'spot': {
                 'time_processed': datetime.now(),
-                'yarn_host': conf.yarn_api_base_url,
+                'yarn_host': host,
                 'error': {
                     'type': e.__class__.__name__,
                     'message': error_msg,
@@ -59,7 +52,6 @@ def main():
         if not conf.crawler_skip_exceptions:
             logger.warning('Skipping malformed metadata is disabled')
             raise e
-
 
     while True:
         logger.debug(f"Getting data from YARN at {conf.yarn_api_base_url}")
@@ -80,7 +72,7 @@ def main():
         except Exception as e:
             _handle_processing_exception_(e, 'yarn_apps')
 
-        #for app in apps:
+        # scheduler stats:
         try:
             scheduler_docs = yarn.get_scheduler_docs()
             elastic.save_yarn_scheduler_docs(scheduler_docs)
