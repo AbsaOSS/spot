@@ -25,5 +25,5 @@ formatter=formatter
 args=(sys.stderr,)
 
 [formatter_formatter]
-format=%(asctime)s %(levelname)-8s %(name)-30s  %(message)s
+format=[%(asctime)s %(levelname)s] {%(module)s:%(name)s:%(funcName)s:%(lineno)d} %(message)30s
 datefmt=%d-%m-%Y %H:%M:%S %Z

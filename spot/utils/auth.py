@@ -21,16 +21,16 @@ from requests_aws4auth import AWS4Auth
 logger = logging.getLogger(__name__)
 
 def auth_config(conf):
-    if not conf.auth_type or conf.auth_type == "None":
-        logger.debug("AuthType of 'None' found")
+    if not conf.auth_type:
+        logger.warning("No AuthType found, proceeding without Elasticsearch authentication")
         return
 
-    if conf.auth_type == "Direct":
-        logger.debug("AuthType of 'Direct' found")
+    if conf.auth_type == "direct":
+        logger.debug("AuthType of 'direct' found")
         return (conf.elastic_username, conf.elastic_password)
 
-    if conf.auth_type == "Cognito":
-        logger.debug("AuthType of 'Cognito' found")
+    if conf.auth_type == "cognito":
+        logger.debug("AuthType of 'cognito' found")
         # Retrieve IdToken based on username & password
         client = boto3.client('cognito-idp',
                                config=Config(signature_version=UNSIGNED,

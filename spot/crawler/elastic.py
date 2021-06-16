@@ -68,6 +68,7 @@ class Elastic:
         try:
             return request_func(*args, **kwargs)
         except AuthorizationException as ae:
+            logger.debug("AuthorizationException: {0}".format(ae))
             if (ae.status_code == 403) and (self._conf.auth_type == 'cognito'):
                 logger.debug("Status code of {0} returned, token refresh required".format(ae.status_code))
                 self._es.transport.connection_pool.connections[0].session.auth = auth_config(self._conf)
