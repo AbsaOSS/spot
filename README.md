@@ -215,7 +215,7 @@ The relevant parameters are:
    - `yarn_clust_index = spot_yarn_cluster_<cluster_name>_<id>` stores general cluster statistics sampled at each iteration
    - `yarn_apps_index = spot_yarn_apps_<cluster_name>_<id>` stores details of completed applications
    - `yarn_scheduler_index = spot_yarn_scheduler_<cluster_name>_<id>` stores statistics sampled from the scheduler. It contains documents of multiple types (which can be filtered by `spot.doc_type` filed) for queues, partitions and users
-   - `err_index` is shared with the main crawler config. It stores exception messages appeared during yarn_craler run
+   - `err_index` is shared with the main crawler config. It stores exception messages that appear during yarn_crawler run
  - `skip_exceptions` parameter is shared with the main crawler
  - Elasticsearch configuration (URL and authentication) is shared with the main crawler 
 
