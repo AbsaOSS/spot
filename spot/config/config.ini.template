@@ -13,8 +13,8 @@ sleep_seconds = 300
 # again but with an updated completion time. As the result, the Spot crawler may
 # encounter this application multiple times. To avoid repeated processing,
 # the crawler processes only the runs which were completed at least this many seconds ago.
-# The default is 300 seconds.
-completion_timeout_seconds = 300
+# The default is 900 seconds.
+completion_timeout_seconds = 900
 
 # When processing a particular run causes an exception
 # (e.g. missing critical metadata, external services errors, etc.)
@@ -65,3 +65,10 @@ log_level = debug
 # menas_ssl_path =
 # username = user
 # password = changeme
+
+[YARN]
+yarn_api_base_url = http://localhost:8088/ws/v1
+yarn_clust_index = spot_yarn_cluster_default_1
+yarn_apps_index = spot_yarn_apps_default_1
+yarn_scheduler_index = spot_yarn_scheduler_default_1
+yarn_sleep_seconds = 60
