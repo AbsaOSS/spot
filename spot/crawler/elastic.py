@@ -16,7 +16,7 @@ import elasticsearch
 from elasticsearch.helpers import bulk
 from elasticsearch.exceptions import AuthorizationException, RequestError
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 import re
 import json
 
@@ -178,6 +178,49 @@ class Elastic:
         max_end_time = datetime.utcfromtimestamp(timestamp/1000.0)
         return max_end_time, id_set
 
+    def get_processed_ids(self, end_time_min, end_time_max, size = 10000):
+        """Query for id's of all apps stored in aggregations
+        which completed from end_time_min to end_time_max.
+        It is needed to compare against app id's from Spark History
+        in order to skip runs processed in the previous iteration
+
+        end_time_min -- minimum complition time of an app
+        end_time_max -- maximum completion time of an app
+        size -- max number of ids to request"""
+
+        query_body = {
+            "query": {
+                "bool": {
+                    "filter": [
+                        {
+                            "range": {
+                                "attempt.endTime": {
+                                    "from": end_time_min,
+                                    "to": end_time_max
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "sort": [
+                {
+                    "attempt.endTime": {
+                        "order": "desc"
+                    }
+                }
+            ],
+            "_source": ["id"],
+            "size": size
+        }
+
+        res = self.__do_request(self._es.search,
+                                index=self._agg_index,
+                                body=query_body)
+        hits = res.get('hits').get('hits')
+        for item in hits:
+            yield item.get("_source").get("id")
+
     def log_indexes_stats(self):
         for name, count, size_bytes in self.get_indexes_stats():
             logger.debug(f'index: {name} '
@@ -312,21 +355,15 @@ class Elastic:
 def main():
     logger.info(f'Starting elastic experiments')
     conf = SpotConfig()
-    es = Elastic(conf.elastic_raw_index)
-    top_tags = list(es.get_top_tags(8))
+    elastic = Elastic(conf)
 
-    for tag, count in top_tags:
-        print(f'{tag}: {count}')
+    min_end_time = datetime.now() - timedelta(days=365)
+    max_end_time = datetime.now()
 
-    tag1, count1 = top_tags[0]
-    runs = es.get_by_tag(tag1)
+    completed_ids = elastic.get_processed_ids(min_end_time, max_end_time)
 
-    # convert to df
-    df = pd.io.json.json_normalize(list(runs)).set_index('id')
-    for column in df.columns:
-        print(column)
-
-    print(df[['name', 'app_specific_data.tag']])
+    for id in completed_ids:
+        print(id)
 
 
 if __name__ == '__main__':
