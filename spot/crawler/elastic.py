@@ -178,7 +178,7 @@ class Elastic:
         max_end_time = datetime.utcfromtimestamp(timestamp/1000.0)
         return max_end_time, id_set
 
-    def get_processed_ids(self, end_time_min, end_time_max, size = 10000):
+    def get_processed_ids(self, end_time_min, end_time_max, size=10000):
         """Query for id's of all apps stored in aggregations
         which completed from end_time_min to end_time_max.
         It is needed to compare against app id's from Spark History
@@ -220,6 +220,12 @@ class Elastic:
         hits = res.get('hits').get('hits')
         for item in hits:
             yield item.get("_source").get("id")
+
+    def get_set_of_processed_ids(self, end_time_min, end_time_max, size=10000):
+        ids_set = set()
+        for id in self.get_processed_ids(end_time_min, end_time_max, size):
+            ids_set.add(id)
+        return ids_set
 
     def log_indexes_stats(self):
         for name, count, size_bytes in self.get_indexes_stats():
@@ -360,10 +366,14 @@ def main():
     min_end_time = datetime.now() - timedelta(days=365)
     max_end_time = datetime.now()
 
-    completed_ids = elastic.get_processed_ids(min_end_time, max_end_time)
+    completed_ids = elastic.get_set_of_processed_ids(min_end_time, max_end_time)
 
     for id in completed_ids:
         print(id)
+
+    sample_ids = ['application_1618993715398_37500', 'local-1619089243593', '100500']
+    for sample_id in sample_ids:
+            print(f"sample id : {sample_id} is in the set: {sample_id in completed_ids}")
 
 
 if __name__ == '__main__':
