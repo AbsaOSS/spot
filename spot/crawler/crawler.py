@@ -148,6 +148,39 @@ class Crawler:
         if success:  # if no exceptions while getting data
             self._process_aggs(app)
 
+    def process_runs_within_time_window(self, start_time, finish_time):
+        processing_start = datetime.now()
+        logger.info(
+            f"Processing completed apps within the time window from {start_time} to {finish_time}")
+        apps = self._agg.next_app(min_end_date=start_time,
+                                  max_end_date=finish_time,
+                                  app_status='completed')
+        tabu_ids = self.agg.get_set_of_processed_ids(self, start_time, finish_time)
+
+        apps_counter = 0
+        matched_counter = 0
+        new_counter = 0
+
+        for app in apps:
+            apps_counter += 1
+            app_id = app.get('id')
+            app_name = app.get('name')
+            if self._name_filter_func(app_name):
+                matched_counter += 1
+                if app_id not in tabu_ids:
+                    new_counter += 1
+                    self._process_app(app)
+                    if new_counter % 20 == 0:
+                        self.log_processing_stats(processing_start, new_counter)
+
+        logger.info(f"Time window {start_time} to {finish_time} processed. "
+                    f"Applications total:{apps_counter}, matched: {matched_counter}, new: {new_counter}")
+        if new_counter > 0:
+            self.log_processing_stats(processing_start, new_counter)
+        return new_counter
+
+
+    # Deprecated
     def process_new_runs(self):
         processing_start = datetime.now()
         max_end_date = datetime.now() - timedelta(seconds=self.completion_timeout_seconds)
@@ -184,6 +217,7 @@ class Crawler:
         logger.debug(f"tabu_set: {self._previous_tabu_set}"
                      f" last date: {self._latest_seen_date}")
 
+    # Deprecated
     # We need to keep track of which applications were already processed.
     # For this reason, we store the latest seen completion date.
     # We use that date in the next iteration when fetching new apps from Spark history.
@@ -211,8 +245,8 @@ class Crawler:
                          start_time).total_seconds()
         per_hour = runs_number * 3600 / delta_seconds
         logger.info(f"processed {runs_number} runs "
-                     f"in {delta_seconds} seconds "
-                     f"average rate: {per_hour} runs/hour")
+                    f"in {delta_seconds} seconds "
+                    f"average rate: {per_hour} runs/hour")
         self._save_obj.log_indexes_stats()
 
 
