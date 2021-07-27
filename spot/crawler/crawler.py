@@ -66,6 +66,7 @@ class Crawler:
                  last_date=None,
                  seen_app_ids=set(),
                  completion_timeout_seconds=0,
+                 time_window_seconds=3600,
                  skip_exceptions=False):
         self._agg = HistoryAggregator(spark_history_url)
         self._history_host = urlparse(spark_history_url).hostname
@@ -74,6 +75,7 @@ class Crawler:
         self._app_specific_obj = app_specific_obj
         self.skip_exceptions = skip_exceptions
         self.completion_timeout_seconds = completion_timeout_seconds
+        self.time_window_seconds = time_window_seconds
 
         self._latest_seen_date = last_date
         # list of apps with the same last date, seen in the previous iteration
@@ -150,7 +152,7 @@ class Crawler:
 
     def process_runs_within_time_window(self, start_time, finish_time):
         processing_start = datetime.now()
-        logger.info(
+        logger.debug(
             f"Processing completed apps within the time window from {start_time} to {finish_time}")
         apps = self._agg.next_app(min_end_date=start_time,
                                   max_end_date=finish_time,
@@ -173,11 +175,33 @@ class Crawler:
                     if new_counter % 20 == 0:
                         self.log_processing_stats(processing_start, new_counter)
 
-        logger.info(f"Time window {start_time} to {finish_time} processed. "
+        logger.debug(f"Time window {start_time} to {finish_time} processed. "
                     f"Applications total:{apps_counter}, matched: {matched_counter}, new: {new_counter}")
         if new_counter > 0:
             self.log_processing_stats(processing_start, new_counter)
         return new_counter
+
+    def process_interval_by_windows(self, interval_start, interval_end):
+        if not interval_start < interval_end:
+            logger.warning(f"time interval error. interval_start: {interval_start}, interval_end: {interval_end}" )
+            return 0
+
+        delta = timedelta(seconds=self.time_window_seconds)
+        window_start = interval_start
+        processing_start = datetime.now()
+        new_counter = 0
+        logger.info(f"Starting processing of time interval. interval_start: {interval_start}, interval_end: {interval_end}" )
+        while window_start < interval_end:
+            window_end = window_start + delta
+            if window_end > interval_end:
+                window_end = interval_end
+            new_counter += self.process_runs_within_time_window(window_start, window_end)
+            window_start = window_end
+        logger.info(f"Time interval {interval_start} - {interval_end}. processed. New runs: {new_counter}")
+        self.log_processing_stats(processing_start, new_counter)
+        return new_counter
+
+
 
 
     # Deprecated
