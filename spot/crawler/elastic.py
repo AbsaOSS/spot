@@ -223,8 +223,8 @@ class Elastic:
 
     def get_set_of_processed_ids(self, end_time_min, end_time_max, size=10000):
         ids_set = set()
-        for id in self.get_processed_ids(end_time_min, end_time_max, size):
-            ids_set.add(id)
+        for app_id in self.get_processed_ids(end_time_min, end_time_max, size):
+            ids_set.add(app_id)
         return ids_set
 
     def log_indexes_stats(self):
@@ -363,8 +363,8 @@ def main():
     conf = SpotConfig()
     elastic = Elastic(conf)
 
-    min_end_time = datetime.now() - timedelta(days=365)
-    max_end_time = datetime.now()
+    min_end_time = datetime.now() - timedelta(hours=365*24)
+    max_end_time = datetime.now() - timedelta(seconds=1800)
 
     completed_ids = elastic.get_set_of_processed_ids(min_end_time, max_end_time)
 

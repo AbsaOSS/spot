@@ -27,7 +27,7 @@ class SparkHistory:
     def _init_session(self):
         logger.debug('starting new Spark History session')
         self._session = requests.Session()
-        retries = requests.packages.urllib3.util.retry.Retry(total=10, backoff_factor=1, status_forcelist=[])
+        retries = requests.packages.urllib3.util.retry.Retry(total=10, backoff_factor=1, status_forcelist=['503'])
         adapter = requests.adapters.HTTPAdapter(max_retries=retries)
         self._session.mount(self._spark_history_base_url, adapter)
 

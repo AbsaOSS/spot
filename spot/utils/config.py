@@ -72,6 +72,20 @@ class SpotConfig(Config):
         return 300
 
     @property
+    def lookback_hours(self):
+        str_val = self.get_property('CRAWLER', 'lookback_hours')
+        if str_val.isdigit():
+            return int(str_val)
+        return 24
+
+    @property
+    def time_step_seconds(self):
+        str_val = self.get_property('CRAWLER', 'time_step_seconds')
+        if str_val.isdigit():
+            return int(str_val)
+        return 3600
+
+    @property
     def crawler_skip_exceptions(self):
         if self.get_boolean('CRAWLER', 'skip_exceptions'):
             return True

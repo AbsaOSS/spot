@@ -66,7 +66,7 @@ class Crawler:
                  last_date=None,
                  seen_app_ids=set(),
                  completion_timeout_seconds=0,
-                 time_window_seconds=3600,
+                 time_step_seconds=3600,
                  skip_exceptions=False):
         self._agg = HistoryAggregator(spark_history_url)
         self._history_host = urlparse(spark_history_url).hostname
@@ -75,7 +75,7 @@ class Crawler:
         self._app_specific_obj = app_specific_obj
         self.skip_exceptions = skip_exceptions
         self.completion_timeout_seconds = completion_timeout_seconds
-        self.time_window_seconds = time_window_seconds
+        self.time_step_seconds = time_step_seconds
 
         self._latest_seen_date = last_date
         # list of apps with the same last date, seen in the previous iteration
@@ -150,14 +150,26 @@ class Crawler:
         if success:  # if no exceptions while getting data
             self._process_aggs(app)
 
-    def process_runs_within_time_window(self, start_time, finish_time):
+    def process_runs_within_time_step(self, start_time, finish_time):
+        """Processes new runs completed within the given time step.
+        First, get from the database a list of ids of already processed runs which were completed within the time step.
+        Second, get the list of all runs completed within the time step from Spark history.
+        Finally, iterates over the list from Spark History,
+        checks whether each id already exists in the list from the database
+        and, if not, processes the run.
+        Such approach is necessary, as the completed runs does not always appear in chronological order.
+        The time step should be selected in such a way that it does not contain more than 10,000 jobs.
+        :param start_time: start time of the time step
+        :param finish_time: end time of the time step
+        :return: number of new runs processed
+        """
         processing_start = datetime.now()
         logger.debug(
-            f"Processing completed apps within the time window from {start_time} to {finish_time}")
+            f"Processing completed apps within the time step from {start_time} to {finish_time}")
         apps = self._agg.next_app(min_end_date=start_time,
                                   max_end_date=finish_time,
                                   app_status='completed')
-        tabu_ids = self.agg.get_set_of_processed_ids(self, start_time, finish_time)
+        tabu_ids = self._save_obj.get_set_of_processed_ids(start_time, finish_time)
 
         apps_counter = 0
         matched_counter = 0
@@ -175,33 +187,56 @@ class Crawler:
                     if new_counter % 20 == 0:
                         self.log_processing_stats(processing_start, new_counter)
 
-        logger.debug(f"Time window {start_time} to {finish_time} processed. "
+        logger.debug(f"Time step {start_time} to {finish_time} processed. "
                     f"Applications total:{apps_counter}, matched: {matched_counter}, new: {new_counter}")
         if new_counter > 0:
             self.log_processing_stats(processing_start, new_counter)
         return new_counter
 
-    def process_interval_by_windows(self, interval_start, interval_end):
-        if not interval_start < interval_end:
-            logger.warning(f"time interval error. interval_start: {interval_start}, interval_end: {interval_end}" )
+    def process_window_by_steps(self, window_start, window_end):
+        """Process new runs which completed within the larger time window and do not present in the database yet.
+        The time window can be large (e.g. retention period of the Spark History)
+        as it is sliced into smaller time steps which are processed iteratively.
+        Previously processed runs are identified by id and skipped.
+        :param window_start: minimum completion time of Spark apps
+        :param window_end: maximum completion time of Spark apps
+        :return: number of new apps processed
+        """
+        if not window_start < window_end:
+            logger.warning(f"time window error. window_start: {window_start}, window_end: {window_end}" )
             return 0
 
-        delta = timedelta(seconds=self.time_window_seconds)
-        window_start = interval_start
+        delta = timedelta(seconds=self.time_step_seconds)
+        step_start = window_start
         processing_start = datetime.now()
         new_counter = 0
-        logger.info(f"Starting processing of time interval. interval_start: {interval_start}, interval_end: {interval_end}" )
-        while window_start < interval_end:
-            window_end = window_start + delta
-            if window_end > interval_end:
-                window_end = interval_end
-            new_counter += self.process_runs_within_time_window(window_start, window_end)
-            window_start = window_end
-        logger.info(f"Time interval {interval_start} - {interval_end}. processed. New runs: {new_counter}")
+        step_counter = 0
+        logger.info(f"Starting processing of time window. window_start: {window_start}, window_end: {window_end}" )
+        while step_start < window_end:
+            step_counter += 1
+            step_end = step_start + delta
+            if step_end > window_end:
+                step_end = window_end
+            new_runs_iteration_counter = self.process_runs_within_time_step(step_start, step_end)
+            logger.debug(f"Step {step_counter}, {step_start} - {step_start} , new runs: {new_runs_iteration_counter}")
+            new_counter += new_runs_iteration_counter
+            step_start = step_end
+        logger.info(f"Time window {window_start} - {window_end}. processed. New runs: {new_counter}")
         self.log_processing_stats(processing_start, new_counter)
         return new_counter
 
+    def process_all_new_runs(self, lookback_hours):
+        time_now = datetime.now()
+        # interval to look back
+        lookback_delta = timedelta(hours=lookback_hours)
+        min_completion_time = time_now - lookback_delta
 
+        # give Spark History time to process the most recent jobs
+        timeout_delta = timedelta(seconds=self.completion_timeout_seconds)
+        max_completion_time = time_now - timeout_delta
+
+        new_counter = self.process_window_by_steps(min_completion_time, max_completion_time)
+        return new_counter
 
 
     # Deprecated
@@ -311,13 +346,16 @@ def main():
                       save_obj=elastic,
                       last_date=last_seen_end_date,
                       seen_app_ids=seen_ids,
-                      skip_exceptions=conf.crawler_skip_exceptions
+                      skip_exceptions=conf.crawler_skip_exceptions,
+                      completion_timeout_seconds=conf.completion_timeout_seconds,
+                      time_step_seconds=conf.time_step_seconds
                       )
 
     sleep_seconds = conf.crawler_sleep_seconds
 
     while True:
-        crawler.process_new_runs()
+        #crawler.process_new_runs()
+        crawler.process_all_new_runs(conf.lookback_hours)
         elastic.log_indexes_stats()
         time.sleep(sleep_seconds)
 
