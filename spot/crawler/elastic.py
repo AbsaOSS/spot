@@ -24,6 +24,7 @@ from spot.crawler.commons import sizeof_fmt, num_elements
 from spot.utils.config import SpotConfig
 from spot.utils.auth import auth_config
 import spot.utils.setup_logger
+from pprint import pprint
 
 logger = logging.getLogger(__name__)
 REQUEST_TIMEOUT = 30
@@ -75,12 +76,30 @@ class Elastic:
                 logger.debug("Auth token refreshed")
             return request_func(*args, **kwargs)
 
+    def _index_not_empty(self, index):
+        """
+
+        :param index: index name
+        :return boolean: True if index exists and has documents in it
+        """
+        # Check if the index exists
+        if not self.__do_request(self._es.indices.exists, index=index):
+            return False
+
+        # Check if the index has docs
+        res = self.__do_request(self._es.count, index=index)
+        count = res.get('count', 0)
+        if count > 0:
+            return True
+
+        return False
+
     def _insert_item(self, index, uid, item):
         try:
             if uid:
                 res = self.__do_request(self._es.index,
                                         index=index,
-                                        op_type='index', # overwrites docs with existing ids
+                                        op_type='index',  # overwrites docs with existing ids
                                         id=uid,
                                         body=item,
                                         ignore=[],
@@ -136,19 +155,19 @@ class Elastic:
 
     def get_latests_time_ids(self):
         id_set = set()
-        if not self.__do_request(self._es.indices.exists, index=self._raw_index):
+        if not self._index_not_empty(self._agg_index):
             return None, id_set
 
         # get max end_time
         body_max_end_time = {
             'size': 0,
             'aggs': {
-                'max_endTime': {'max': {'field': 'attempts.endTime'}}
+                'max_endTime': {'max': {'field': 'attempt.endTime'}}
             }
         }
 
         res_time = self.__do_request(self._es.search,
-                                    index = self._raw_index,
+                                    index = self._agg_index,
                                     body = body_max_end_time)
         # es uses epoch_millis internally
         timestamp = res_time['aggregations']['max_endTime']['value']
@@ -187,6 +206,9 @@ class Elastic:
         end_time_min -- minimum complition time of an app
         end_time_max -- maximum completion time of an app
         size -- max number of ids to request"""
+
+        if not self._index_not_empty(self._agg_index):
+            return []
 
         query_body = {
             "query": {
@@ -238,7 +260,7 @@ class Elastic:
         self._insert_item(self._yarn_clust_index, None, clust_stats)
 
     def get_yarn_latest_finished_time(self):
-        if not self.__do_request(self._es.indices.exists, index=self._yarn_apps_index):
+        if not self._index_not_empty(self._yarn_apps_index):
             return None
 
         # get max end_time
@@ -249,8 +271,8 @@ class Elastic:
             }
         }
         res_time = self.__do_request(self._es.search,
-                                     index = self._yarn_apps_index,
-                                     body = body_max_end_time)
+                                     index=self._yarn_apps_index,
+                                     body=body_max_end_time)
         # es uses epoch_millis internally
         timestamp = res_time['aggregations']['max_endTime']['value']
         if timestamp is None:
