@@ -49,6 +49,7 @@ time_units = {
 }
 
 date_formats = ["%d-%m-%Y %H:%M:%S %z", "%d-%m-%Y %H:%M:%S"]
+info_date_formats = ['%d-%m-%Y', '%Y-%m-%d']
 
 
 def parse_date(text, formats=date_formats):

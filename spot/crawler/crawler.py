@@ -15,6 +15,7 @@ import logging
 import time
 from datetime import datetime, timedelta
 from pprint import pprint
+from json import JSONDecodeError
 
 from urllib.parse import urlparse
 from spot.utils.config import SpotConfig
@@ -67,7 +68,9 @@ class Crawler:
                  seen_app_ids=set(),
                  completion_timeout_seconds=0,
                  time_step_seconds=3600,
-                 skip_exceptions=False):
+                 skip_exceptions=False,
+                 retry_attempts=24,
+                 retry_sleep_seconds=900):
         self._agg = HistoryAggregator(spark_history_url)
         self._history_host = urlparse(spark_history_url).hostname
         self._name_filter_func = name_filter_func
@@ -76,6 +79,9 @@ class Crawler:
         self.skip_exceptions = skip_exceptions
         self.completion_timeout_seconds = completion_timeout_seconds
         self.time_step_seconds = time_step_seconds
+        self.retry_sleep_seconds = retry_sleep_seconds
+        self.retry_attempts = retry_attempts
+        self.retry_attempts_remained = self.retry_attempts
 
         self._latest_seen_date = last_date
         # list of apps with the same last date, seen in the previous iteration
@@ -94,6 +100,7 @@ class Crawler:
                 'history_host': self._history_host,
                 'error': {
                     'type': e.__class__.__name__,
+                    'args:': e.args,
                     'message': error_msg,
                     'stage': stage_name
                 }
@@ -115,9 +122,25 @@ class Crawler:
 
             # save
             self._save_obj.save_app(app)
+            self.retry_attempts_remained = self.retry_attempts # reset retries after successful attempt
             return True
+
         except Exception as e:
             self._handle_processing_exception_(e, 'raw', app.get('id', 'unknown'))
+            # if skip_exceptions is set to False, the code will exit by this point
+            if isinstance(e, JSONDecodeError) \
+                and e.error_msg == "Expecting value: line 1 column 1 (char 0)"\
+                    and self.retry_attempts_remained > 0:
+                        # Error due to Spark History is in a bad state
+                        logger.warning(f"Spark history responded with a wrong format. "
+                                       f"Please, reboot the Spark History server."
+                                       f" Will retry in {self.retry_sleep_seconds} s. "
+                                       f"{self.retry_attempts_remained} retries remained")
+                        # wait and retry
+                        time.sleep(self.retry_sleep_seconds)
+                        self.retry_attempts_remained -= 1
+                        return self._process_raw(app)
+
             return False
 
     def _process_aggs(self, app):
@@ -238,7 +261,6 @@ class Crawler:
         new_counter = self.process_window_by_steps(min_completion_time, max_completion_time)
         return new_counter
 
-
     # Deprecated
     def process_new_runs(self):
         processing_start = datetime.now()
@@ -348,7 +370,9 @@ def main():
                       seen_app_ids=seen_ids,
                       skip_exceptions=conf.crawler_skip_exceptions,
                       completion_timeout_seconds=conf.completion_timeout_seconds,
-                      time_step_seconds=conf.time_step_seconds
+                      time_step_seconds=conf.time_step_seconds,
+                      retry_sleep_seconds=conf.retry_sleep_seconds,
+                      retry_attempts=conf.retry_sleep_seconds
                       )
 
     sleep_seconds = conf.crawler_sleep_seconds

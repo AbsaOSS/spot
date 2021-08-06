@@ -92,6 +92,20 @@ class SpotConfig(Config):
         return False
 
     @property
+    def retry_sleep_seconds(self):
+        str_val = self.get_property('CRAWLER', 'retry_sleep_seconds')
+        if str_val.isdigit():
+            return int(str_val)
+        return 900
+
+    @property
+    def retry_attempts(self):
+        str_val = self.get_property('CRAWLER', 'retry_attempts')
+        if str_val.isdigit():
+            return int(str_val)
+        return 10
+
+    @property
     def elasticsearch_url(self):
         return self.get_property('SPOT_ELASTICSEARCH', 'elasticsearch_url')
 

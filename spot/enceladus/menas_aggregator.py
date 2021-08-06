@@ -15,14 +15,11 @@ import logging
 
 from spot.enceladus.menas_api import MenasApi
 import spot.enceladus.classification as clsf
-from spot.crawler.commons import cast_string_to_value, get_attribute, bytes_to_hdfs_block, parse_date
+from spot.crawler.commons import cast_string_to_value, get_attribute, bytes_to_hdfs_block, parse_date, date_formats, info_date_formats
 import spot.utils.setup_logger
 
 
 logger = logging.getLogger(__name__)
-
-date_formats = ["%d-%m-%Y %H:%M:%S %z", "%d-%m-%Y %H:%M:%S"]
-
 
 
 def _match_values(left, right):
@@ -76,7 +73,11 @@ class MenasAggregator:
         for key, value in additional_info.items():
             additional_info[key] = cast_string_to_value(value)
         start_date_time = parse_date(run.get('startDateTime'), formats=date_formats)
-        run['startDateTime']= start_date_time
+        run['startDateTime'] = start_date_time
+
+        additional_info['enceladus_info_date'] = parse_date(additional_info['enceladus_info_date'], formats=info_date_formats)
+        run['controlMeasure']['metadata']['informationDate'] = parse_date(run['controlMeasure']['metadata']['informationDate'], formats=info_date_formats)
+
         return run
 
     def get_runs(self, app_id, clfsion):
