@@ -2,3 +2,6 @@ requests
 elasticsearch
 pandas
 numpy
+boto3
+pycognito
+requests-aws4auth

@@ -100,7 +100,6 @@ class Crawler:
                 'history_host': self._history_host,
                 'error': {
                     'type': e.__class__.__name__,
-                    'args:': e.args,
                     'message': error_msg,
                     'stage': stage_name
                 }
@@ -122,24 +121,27 @@ class Crawler:
 
             # save
             self._save_obj.save_app(app)
-            self.retry_attempts_remained = self.retry_attempts # reset retries after successful attempt
+            self.retry_attempts_remained = self.retry_attempts  # reset retries after successful attempt
             return True
 
         except Exception as e:
             self._handle_processing_exception_(e, 'raw', app.get('id', 'unknown'))
             # if skip_exceptions is set to False, the code will exit by this point
-            if isinstance(e, JSONDecodeError) \
-                and e.error_msg == "Expecting value: line 1 column 1 (char 0)"\
-                    and self.retry_attempts_remained > 0:
-                        # Error due to Spark History is in a bad state
-                        logger.warning(f"Spark history responded with a wrong format. "
-                                       f"Please, reboot the Spark History server."
-                                       f" Will retry in {self.retry_sleep_seconds} s. "
-                                       f"{self.retry_attempts_remained} retries remained")
-                        # wait and retry
-                        time.sleep(self.retry_sleep_seconds)
-                        self.retry_attempts_remained -= 1
-                        return self._process_raw(app)
+            if isinstance(e, JSONDecodeError) and e.error_msg.startswith("Expecting value:"):
+                # Error due to Spark History is in a bad state
+                logger.error(f"Spark history responded with a wrong format. "
+                             f"Please, reboot Spark History server.")
+                if self.retry_attempts_remained > 0:
+                    # wait and retry
+                    logger.warning(f" Will retry in {self.retry_sleep_seconds} s. "
+                                   f"{self.retry_attempts_remained} retries remained")
+                    time.sleep(self.retry_sleep_seconds)
+                    self.retry_attempts_remained -= 1
+                    return self._process_raw(app)
+                else:
+                    # no retry attempts left
+                    logger.error("No retry attempts left")
+                    raise e
 
             return False
 
@@ -173,6 +175,35 @@ class Crawler:
         if success:  # if no exceptions while getting data
             self._process_aggs(app)
 
+    def _get_next_completed_app(self, min_end_date=None, max_end_date=None):
+        try:
+            apps = self._agg.next_app(min_end_date=min_end_date,
+                                      max_end_date=max_end_date,
+                                      app_status='completed')
+            self.retry_attempts_remained = self.retry_attempts  # reset retries after successful attempt
+            return apps
+        except Exception as e:
+            self._handle_processing_exception_(e, 'listing', 'n/a')
+            # if skip_exceptions is set to False, the code will exit by this point
+            if isinstance(e, JSONDecodeError) and e.error_msg.startswith("Expecting value:"):
+                # Error due to Spark History is in a bad state
+                logger.error(f"Spark history responded with a wrong format. "
+                             f"Please, reboot Spark History server.")
+                if self.retry_attempts_remained > 0:
+                    # wait and retry
+                    logger.warning(f" Will retry in {self.retry_sleep_seconds} s. "
+                                   f"{self.retry_attempts_remained} retries remained")
+                    time.sleep(self.retry_sleep_seconds)
+                    self.retry_attempts_remained -= 1
+                    return self._get_next_completed_app(self, min_end_date=min_end_date, max_end_date=max_end_date)
+                else:
+                    # no retry attempts left
+                    logger.error("No retry attempts left")
+                    raise e
+
+            # other unknown exception
+            raise e
+
     def process_runs_within_time_step(self, start_time, finish_time):
         """Processes new runs completed within the given time step.
         First, get from the database a list of ids of already processed runs which were completed within the time step.
@@ -189,9 +220,8 @@ class Crawler:
         processing_start = datetime.now()
         logger.debug(
             f"Processing completed apps within the time step from {start_time} to {finish_time}")
-        apps = self._agg.next_app(min_end_date=start_time,
-                                  max_end_date=finish_time,
-                                  app_status='completed')
+        apps = self._get_next_completed_app(min_end_date=start_time,
+                                  max_end_date=finish_time)
         tabu_ids = self._save_obj.get_set_of_processed_ids(start_time, finish_time)
 
         apps_counter = 0
@@ -249,6 +279,17 @@ class Crawler:
         return new_counter
 
     def process_all_new_runs(self, lookback_hours):
+        """Process all new runs from Spark History server.
+        The method processes completion time interval from lookback_hours to (time_now - lookback_delta).
+        The interval is split into steps.
+        The list of jobs completed within each time step is pulled from both Spark History and database and compared.
+        The new runs from Spark History, which are not present in the database are then further processed and stored.
+        This method provides more reliable retrieval of data from Spark History (especially for loaded clusters)
+        but makes more API calls to both the database and the History server.
+
+        :param lookback_hours: earliest completion time from now
+        :return: number of new processed runs
+        """
         time_now = datetime.now()
         # interval to look back
         lookback_delta = timedelta(hours=lookback_hours)
@@ -262,15 +303,24 @@ class Crawler:
         return new_counter
 
     # Deprecated
-    def process_new_runs(self):
+    def process_new_runs_since_latest_processed(self):
+        """ Processes new runs from Spark History server which completed later than _latest_seen_date.
+        The _latest_seen_date is either set upon class initialization,
+        stored from the previous call of the method
+        or pulled from the database of previously processed runs.
+        This method provides faster processing but based on the assumption that the new runs appear in
+        Spark History strictly in the order of their completion, which is not necessarily true,
+        especially for heavily loaded clusters.
+
+        :return: list of new runs
+        """
         processing_start = datetime.now()
-        max_end_date = datetime.now() - timedelta(seconds=self.completion_timeout_seconds)
+        max_end_date = processing_start - timedelta(seconds=self.completion_timeout_seconds)
 
         logger.info(
             f"Fetching new apps, completed from {self._latest_seen_date} to {max_end_date}")
-        apps = self._agg.next_app(min_end_date=self._latest_seen_date,
-                                  max_end_date=max_end_date,
-                                  app_status='completed')
+        apps = self._get_next_completed_app(min_end_date=self._latest_seen_date,
+                                  max_end_date=max_end_date)
         new_counter = 0
         matched_counter = 0
         self._new_tabu_set = set()
@@ -297,6 +347,7 @@ class Crawler:
             self.log_processing_stats(processing_start, matched_counter)
         logger.debug(f"tabu_set: {self._previous_tabu_set}"
                      f" last date: {self._latest_seen_date}")
+        return new_counter
 
     # Deprecated
     # We need to keep track of which applications were already processed.
