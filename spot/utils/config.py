@@ -72,6 +72,13 @@ class SpotConfig(Config):
         return 300
 
     @property
+    def crawler_method(self):
+        crawler_method = self.get_property('CRAWLER', 'crawler_method')
+        if crawler_method is None:
+            crawler_method = 'all'
+        return crawler_method
+
+    @property
     def lookback_hours(self):
         str_val = self.get_property('CRAWLER', 'lookback_hours')
         if str_val.isdigit():

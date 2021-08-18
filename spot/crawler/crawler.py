@@ -67,6 +67,8 @@ class Crawler:
                  last_date=None,
                  seen_app_ids=set(),
                  completion_timeout_seconds=0,
+                 crawler_method='all',
+                 lookback_hours=24*7,
                  time_step_seconds=3600,
                  skip_exceptions=False,
                  retry_attempts=24,
@@ -78,6 +80,18 @@ class Crawler:
         self._app_specific_obj = app_specific_obj
         self.skip_exceptions = skip_exceptions
         self.completion_timeout_seconds = completion_timeout_seconds
+
+        # set History retrieval method
+        logger.debug(f'crawler_method: {crawler_method}')
+        if crawler_method == 'all':
+            self.process_new_runs = self.process_all_new_runs
+        elif crawler_method == 'latest':
+            self.process_new_runs = self.process_new_runs_since_latest_processed
+        else:
+            logger.warning(f'crawler_method {crawler_method} not recognized. Using the default')
+            self.process_new_runs = self.process_all_new_runs
+
+        self.lookback_delta = timedelta(hours=lookback_hours)
         self.time_step_seconds = time_step_seconds
         self.retry_sleep_seconds = retry_sleep_seconds
         self.retry_attempts = retry_attempts
@@ -278,7 +292,7 @@ class Crawler:
         self.log_processing_stats(processing_start, new_counter)
         return new_counter
 
-    def process_all_new_runs(self, lookback_hours):
+    def process_all_new_runs(self):
         """Process all new runs from Spark History server.
         The method processes completion time interval from lookback_hours to (time_now - lookback_delta).
         The interval is split into steps.
@@ -287,13 +301,11 @@ class Crawler:
         This method provides more reliable retrieval of data from Spark History (especially for loaded clusters)
         but makes more API calls to both the database and the History server.
 
-        :param lookback_hours: earliest completion time from now
         :return: number of new processed runs
         """
         time_now = datetime.now()
         # interval to look back
-        lookback_delta = timedelta(hours=lookback_hours)
-        min_completion_time = time_now - lookback_delta
+        min_completion_time = time_now - self.lookback_delta
 
         # give Spark History time to process the most recent jobs
         timeout_delta = timedelta(seconds=self.completion_timeout_seconds)
@@ -421,6 +433,8 @@ def main():
                       seen_app_ids=seen_ids,
                       skip_exceptions=conf.crawler_skip_exceptions,
                       completion_timeout_seconds=conf.completion_timeout_seconds,
+                      crawler_method=conf.crawler_method,
+                      lookback_hours=conf.lookback_hours,
                       time_step_seconds=conf.time_step_seconds,
                       retry_sleep_seconds=conf.retry_sleep_seconds,
                       retry_attempts=conf.retry_sleep_seconds
@@ -429,8 +443,8 @@ def main():
     sleep_seconds = conf.crawler_sleep_seconds
 
     while True:
-        #crawler.process_new_runs()
-        crawler.process_all_new_runs(conf.lookback_hours)
+        crawler.process_new_runs()
+        #crawler.process_all_new_runs()
         elastic.log_indexes_stats()
         time.sleep(sleep_seconds)
 
