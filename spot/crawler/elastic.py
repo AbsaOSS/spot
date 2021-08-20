@@ -153,22 +153,22 @@ class Elastic:
     def save_err(self, app):
         self._insert_item(self._err_index, None, app)
 
-    def get_latests_time_ids(self):
+    def get_latest_time_ids(self):
         id_set = set()
         if not self._index_not_empty(self._agg_index):
             return None, id_set
 
         # get max end_time
         body_max_end_time = {
-            'size': 0,
-            'aggs': {
-                'max_endTime': {'max': {'field': 'attempt.endTime'}}
+            "size": 0,
+            "aggs": {
+                "max_endTime": {"max": {"field": "attempt.endTime"}}
             }
         }
 
         res_time = self.__do_request(self._es.search,
-                                    index = self._agg_index,
-                                    body = body_max_end_time)
+                                    index=self._agg_index,
+                                    body=body_max_end_time)
         # es uses epoch_millis internally
         timestamp = res_time['aggregations']['max_endTime']['value']
         if timestamp is None:
@@ -179,20 +179,20 @@ class Elastic:
         str_max_end_time = res_time['aggregations']['max_endTime']['value_as_string']
         # get list of ids fot the same date
         body_id_list = {
-            "stored_fields": [],
             "query": {
                 "match": {
-                    "attempts.endTime": str_max_end_time
+                    "attempt.endTime": str_max_end_time
                 }
-            }
+            },
+            "_source": ["id"]
         }
 
         res_ids = self.__do_request(self._es.search,
-                                    index = self._raw_index,
-                                    body = body_id_list)
+                                    index=self._agg_index,
+                                    body=body_id_list)
 
         for hit in res_ids['hits']['hits']:
-            id_set.add(hit['_id'])
+            id_set.add(hit['_source']['id'])
 
         max_end_time = datetime.utcfromtimestamp(timestamp/1000.0)
         return max_end_time, id_set

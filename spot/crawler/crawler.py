@@ -15,7 +15,7 @@ import logging
 import time
 from datetime import datetime, timedelta
 from pprint import pprint
-from json import JSONDecodeError
+from json.decoder import JSONDecodeError
 
 from urllib.parse import urlparse
 from spot.utils.config import SpotConfig
@@ -194,12 +194,13 @@ class Crawler:
             apps = self._agg.next_app(min_end_date=min_end_date,
                                       max_end_date=max_end_date,
                                       app_status='completed')
-            self.retry_attempts_remained = self.retry_attempts  # reset retries after successful attempt
-            return apps
+            for app in apps:
+                self.retry_attempts_remained = self.retry_attempts  # reset retries after successful attempt
+                yield app
         except Exception as e:
             self._handle_processing_exception_(e, 'listing', 'n/a')
             # if skip_exceptions is set to False, the code will exit by this point
-            if isinstance(e, JSONDecodeError) and e.error_msg.startswith("Expecting value:"):
+            if isinstance(e, JSONDecodeError) and str(e).startswith("Expecting value:"):
                 # Error due to Spark History is in a bad state
                 logger.error(f"Spark history responded with a wrong format. "
                              f"Please, reboot Spark History server.")
@@ -209,7 +210,7 @@ class Crawler:
                                    f"{self.retry_attempts_remained} retries remained")
                     time.sleep(self.retry_sleep_seconds)
                     self.retry_attempts_remained -= 1
-                    return self._get_next_completed_app(self, min_end_date=min_end_date, max_end_date=max_end_date)
+                    return self._get_next_completed_app(min_end_date=min_end_date, max_end_date=max_end_date)
                 else:
                     # no retry attempts left
                     logger.error("No retry attempts left")
@@ -413,7 +414,7 @@ def main():
     elastic = Elastic(conf)
 
     # find starting end date and list of seen apps
-    last_seen_end_date, seen_ids = elastic.get_latests_time_ids()
+    last_seen_end_date, seen_ids = elastic.get_latest_time_ids()
     logger.debug(
         f'Latest stored end date: {last_seen_end_date} seen apps: {seen_ids}')
 
@@ -437,7 +438,7 @@ def main():
                       lookback_hours=conf.lookback_hours,
                       time_step_seconds=conf.time_step_seconds,
                       retry_sleep_seconds=conf.retry_sleep_seconds,
-                      retry_attempts=conf.retry_sleep_seconds
+                      retry_attempts=conf.retry_attempts
                       )
 
     sleep_seconds = conf.crawler_sleep_seconds
