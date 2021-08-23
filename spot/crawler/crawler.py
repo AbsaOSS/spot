@@ -141,7 +141,7 @@ class Crawler:
         except Exception as e:
             self._handle_processing_exception_(e, 'raw', app.get('id', 'unknown'))
             # if skip_exceptions is set to False, the code will exit by this point
-            if isinstance(e, JSONDecodeError) and e.error_msg.startswith("Expecting value:"):
+            if isinstance(e, JSONDecodeError) and str(e).startswith("Expecting value:"):
                 # Error due to Spark History is in a bad state
                 logger.error(f"Spark history responded with a wrong format. "
                              f"Please, reboot Spark History server.")

@@ -49,6 +49,8 @@ class Elastic:
                                                connection_class=elasticsearch.RequestsHttpConnection)
         # Spark indexes
         self._raw_index = self._conf.elastic_raw_index
+        if self._raw_index is None:
+            logger.info(f"raw index is set to None. Raw documents will not be stored.")
         self._agg_index = self._conf.elastic_agg_index
         self._err_index = self._conf.elastic_err_index
 
@@ -141,8 +143,9 @@ class Elastic:
                                 request_timeout=REQUEST_TIMEOUT)
 
     def save_app(self, app):
-        uid = app.get('id')
-        self._insert_item(self._raw_index, uid, app)
+        if self._raw_index is not None:
+            uid = app.get('id')
+            self._insert_item(self._raw_index, uid, app)
 
     def save_agg(self, agg):
         app_id = agg.get('id')
@@ -315,7 +318,7 @@ class Elastic:
             self._err_index
         ]
         for index in indexes:
-            if self.__do_request(self._es.indices.exists, index=index):
+            if index is not None and self.__do_request(self._es.indices.exists, index=index):
                 yield self._get_index_stats(index)
             else:
                 logger.warning(f'index {index} does not exist')
@@ -327,14 +330,14 @@ class Elastic:
         size_bytes = primaries['store']['size_in_bytes']
         return index, docs_count, size_bytes
 
-    def get_top_tags(self, min_count=8):
+    def get_top_tags(self, min_count=10):
         body = {
-            "size": 0,
+            "size": 5000,
             "aggs": {
                 "top_tags": {
                     "terms": {
                         "field": "app_specific_data.tag.keyword",
-                        "size": 100500
+                        "size": 5000
                     },
                     "aggs": {
                         "my_filter": {
@@ -350,24 +353,25 @@ class Elastic:
             }
         }
         res = self.__do_request(self._es.search,
-                                index = self._raw_index,
-                                body = body)
+                                index=self._agg_index,
+                                body=body)
         logger.debug(res)
         buckets = res.get('aggregations').get('top_tags').get('buckets')
         for bucket in buckets:
             yield bucket.get("key"), bucket.get("doc_count")
 
-    def get_by_tag(self, tag):
+    def get_by_tag(self, tag, size=10000):
         body = {
             "query": {
                 "term": {
-                    "app_specific_data.tag": tag
+                    "app_specific_data.tag.keyword": tag
                 }
-            }
+            },
+            "size": size
         }
         res = self.__do_request(self._es.search,
-                                index = self._raw_index,
-                                body = body)
+                                index=self._agg_index,
+                                body=body)
         logger.debug(res)
         hits = res.get('hits').get('hits')
         for hit in hits:
@@ -375,8 +379,8 @@ class Elastic:
 
     def get_by_id(self, id):
         res = self.__do_request(self._es.get,
-                                index = self._raw_index,
-                                id = id)
+                                index=self._agg_index,
+                                id=id)
         return res.get('_source')
 
 
@@ -385,17 +389,32 @@ def main():
     conf = SpotConfig()
     elastic = Elastic(conf)
 
-    min_end_time = datetime.now() - timedelta(hours=365*24)
-    max_end_time = datetime.now() - timedelta(seconds=1800)
+    # min_end_time = datetime.now() - timedelta(hours=365*24)
+    # max_end_time = datetime.now() - timedelta(seconds=1800)
 
-    completed_ids = elastic.get_set_of_processed_ids(min_end_time, max_end_time)
+    # completed_ids = elastic.get_set_of_processed_ids(min_end_time, max_end_time)
 
-    for id in completed_ids:
-        print(id)
+    # for id in completed_ids:
+    #    print(id)
 
-    sample_ids = ['application_1618993715398_37500', 'local-1619089243593', '100500']
-    for sample_id in sample_ids:
-            print(f"sample id : {sample_id} is in the set: {sample_id in completed_ids}")
+    # sample_ids = ['application_1618993715398_37500', 'local-1619089243593', '100500']
+    # for sample_id in sample_ids:
+    #        print(f"sample id : {sample_id} is in the set: {sample_id in completed_ids}")
+    top_tags = elastic.get_top_tags(min_count=100)
+
+    i = 0
+    sample_tag = None
+    for tag, count in top_tags:
+        print(f"{tag}: {count}")
+        if i == 0:
+            sample_tag = tag
+        i += 1
+
+    print(sample_tag)
+
+    for item in elastic.get_by_tag(sample_tag):
+        print(item['id'])
+
 
 
 if __name__ == '__main__':
