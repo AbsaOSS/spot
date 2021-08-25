@@ -63,6 +63,63 @@ def parse_date(text, formats=date_formats):
     return
 
 
+def isint(in_str):
+    return re.match(r"^[-+]?\d+$", in_str) is not None
+
+
+def isfloat(in_str):
+    return re.match(r"^[+-]?\d(>?\.\d+)?$", in_str) is not None
+
+
+def cast_to_number(in_str):
+    if isint(in_str):
+        return int(in_str)
+    elif isfloat(in_str):
+        return float(in_str)
+    return None
+
+
+def parse_percentage(text):
+    """Parse a string representing percentage (e.g. '110.01 %') into a float ratio
+
+    :param text: percentage as a string ending with ' %'
+    :return: float presenting the corresponding ratio. None if the format is wrong
+    """
+    if text.endswith(' %'):
+        str_val = text[:-2]
+        try:
+            percent = float(str_val)
+            ratio = percent / 100.0
+            return ratio
+        except ValueError:
+            logger.warning(f"Failed to parse percentage string to a float ratio: {str_val}")
+            return
+    return
+
+
+def parse_command_line_args(text):
+    """Parses string of command line args into a dict.
+    Only basic parsing is supported at the moment.
+    Each parameter starting with '--' is transformed into a key,
+    and everything which follows is taken as a string value.
+    Each value has a prefix ' ' in order to avoid schema inference in Elasticsearch.
+    This is done, because Elasticsearch may wrongly interpret some of the values which would result in errors.
+
+    :param text: string containing all command line args
+    :return: dictionary {arg_name: ' 'string_value}
+    """
+    result = {}
+    for param in text.split('--'):
+        if param != '':
+            words = param.strip(' ').split(' ')
+            key = words[0]
+            # Below we start with space to avoid auto schema inference in Elasticsearch,
+            # so that all params are string
+            value = ' ' + ''.join(words[1:])
+            result[key] = value
+    return result
+
+
 def get_last_attempt(app):
     # we assume the attempts are sorted in reversed chronological order
     return app.get('attempts')[0]
@@ -82,11 +139,11 @@ def parse_to_bytes(size_str, default_multiplier=1):
             stripped = stripped[:-len(unit)]
             multiplier = size_units[unit]
             break
-    if stripped.isdigit():
-        return int(stripped) * multiplier
-    else:
-        logger.warning(f'Failed to parse string {size_str} to bytes')
-        return None
+    as_number = cast_to_number(stripped)
+    if as_number is not None:
+        return as_number * multiplier
+    logger.warning(f'Failed to parse string {size_str} to bytes')
+    return
 
 
 # 1 MiB = 1024 * 1024 bytes = 1048576 bytes
@@ -110,11 +167,12 @@ def parse_to_ms(time_str):
             stripped = stripped[:-len(unit)]
             multiplier = time_units[unit]
             break
-    if stripped.isdigit():
-        return int(stripped) * multiplier
-    else:
-        logger.warning(f'Failed to parse string {time_str} to milliseconds')
-        return
+    as_number = cast_to_number(stripped)
+    if as_number is not None:
+        return as_number * multiplier
+
+    logger.warning(f'Failed to parse string {time_str} to milliseconds')
+    return
 
 
 def sizeof_fmt(num, suffix='B'):
@@ -126,11 +184,9 @@ def sizeof_fmt(num, suffix='B'):
 
 
 def cast_string_to_value(str_val):
-    if str_val.isdigit():
-        try:
-            return int(str_val)
-        except ValueError:
-            return float(str_val)
+    as_number = cast_to_number(str_val)
+    if as_number is not None:
+        return as_number
     return str_val
 
 

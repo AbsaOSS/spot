@@ -15,11 +15,36 @@ import logging
 
 from spot.enceladus.menas_api import MenasApi
 import spot.enceladus.classification as clsf
-from spot.crawler.commons import cast_string_to_value, get_attribute, bytes_to_hdfs_block, parse_date, date_formats, info_date_formats
+from spot.crawler.commons import cast_string_to_value, get_attribute, bytes_to_hdfs_block, parse_date, date_formats, info_date_formats, parse_to_bytes,parse_to_bytes_default_MiB, parse_percentage, parse_command_line_args
 import spot.utils.setup_logger
 
 
 logger = logging.getLogger(__name__)
+
+_cast_additionalInfo_dict = {
+
+    'conform_executor_memory_overhead': parse_to_bytes_default_MiB,
+    "std_driver_memory_overhead": parse_to_bytes_default_MiB,
+
+    "std_executor_memory": parse_to_bytes,
+    "conform_driver_memory": parse_to_bytes,
+    "conform_executor_memory": parse_to_bytes,
+    "std_driver_memory": parse_to_bytes,
+
+    "conform_data_size_ratio": parse_percentage,
+    "std_size_ratio": parse_percentage,
+    "std_data_size_ratio": parse_percentage,
+    'conform_size_ratio': parse_percentage,
+
+    "conform_cmd_line_args": parse_command_line_args,
+    "std_cmd_line_args": parse_command_line_args,
+
+}
+
+_remove_cmd_line_args = [
+    "menas-auth-keytab",
+    "menas-credentials-file"
+]
 
 
 def _match_values(left, right):
@@ -71,10 +96,20 @@ class MenasAggregator:
     def cast_run_data(run):
         additional_info = run['controlMeasure']['metadata']['additionalInfo']
         for key, value in additional_info.items():
-            additional_info[key] = cast_string_to_value(value)
+            if key in _cast_additionalInfo_dict:
+                additional_info[key] = _cast_additionalInfo_dict[key](value) # custom casting for certain fileds
+            else:
+                additional_info[key] = cast_string_to_value(value)  # default casting str -> int of float
+            if key in ['conform_cmd_line_args', 'std_cmd_line_args']:  # remove certain arg values
+                cmd_args = additional_info[key]
+                for arg_name in cmd_args:
+                    if arg_name in _remove_cmd_line_args:
+                        cmd_args[arg_name] = 'spot_removed'
+
         start_date_time = parse_date(run.get('startDateTime'), formats=date_formats)
         run['startDateTime'] = start_date_time
 
+        # handle info dates
         additional_info['enceladus_info_date'] = parse_date(additional_info['enceladus_info_date'], formats=info_date_formats)
         run['controlMeasure']['metadata']['informationDate'] = parse_date(run['controlMeasure']['metadata']['informationDate'], formats=info_date_formats)
 
