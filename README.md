@@ -34,7 +34,8 @@ Spot consists of the following modules:
 | Regression     |(Future) The regression models use the stored data in order to interpolate time VS. config values. |
 | Setter         |(Future) The Setter module suggests config values for new runs of Spark apps based on the regression model.|
 | Enceladus      |The Enceladus module provides integration capabilities for Spot usage with [Enceladus](https://github.com/AbsaOSS/enceladus).|
-
+| Yarn           | The module contains its own crawler which provides data collection from [YARN](https://hadoop.apache.org/docs/current/hadoop-yarn/hadoop-yarn-site/YARN.html) API. The data can be visualized with provided Kibana dashboards. (Future) The YARN data is merged with data from other sources (Spark, Enceladus) for a more complete analyses.|
+| Kibana         | A collection of Kibana dashboards and alerts which provide visualization and monitoring for the Spot data. |
 A detailed description of each module can be found in section [Modules](#modules).
 
 The diagram below shows current Spot architecture.
@@ -152,6 +153,14 @@ are stored in a separate collection along with error messages.
 ### Enceladus
 The Enceladus module provides integration capabilities for Spot usage with [Enceladus](https://github.com/AbsaOSS/enceladus)
 
+### YARN
+
+The module contains its own crawler which provides data collection from [YARN](https://hadoop.apache.org/docs/current/hadoop-yarn/hadoop-yarn-site/YARN.html) API. The data can be visualized with provided Kibana dashboards. (Future) The YARN data is merged with data from other sources (Spark, Enceladus) for a more complete analyses.|
+
+
+### Kibana
+A collection of Kibana dashboards and alerts which provide visualization and monitoring for the Spot data. 
+
 ## Deployment
 - Install Python 3 (recommended 3.7 and later)
 - Install required modules (see requirements.txt)
@@ -161,10 +170,11 @@ The Enceladus module provides integration capabilities for Spot usage with [Ence
     - Elasticsearch and Kibana
     - Spark History (2.4 and later recommended)
     - (Optional) [Menas](https://github.com/AbsaOSS/enceladus) (2.1.0 and later recommended) Requires username and password
+    - (Optional) [YARN](https://hadoop.apache.org/docs/current/hadoop-yarn/hadoop-yarn-site/YARN.html)
 - Create configuration: in /spot/config copy config.ini.template to config.ini and set parameters from the above step
     - For a new deployment set new index names which do not exist in elasticsearch. 
     In order to be compatible with the provided [Kibana objects](spot/kibana/) the indexes should match the following patterns:  
-    raw_index=spot\_raw\_\<cluster_name\>\_\<id\>  
+    (optional) raw_index=spot\_raw\_\<cluster_name\>\_\<id\>  
     agg_index=spot\_agg\_\<cluster_name\>\_\<id\>  
     err_index=spot\_err\_\<cluster_name\>\_\<id\>  
 - Configure logging: in /spot/config copy logging_confg.template to logging_confg.ini and adjust the parameters (see [Logging](https://docs.python.org/2/library/logging.config.html#configuration-file-format))
@@ -187,6 +197,7 @@ There the data can be filtered by history_host.keyword if required.
 |--min_end_date | None             |Optional. Minimal completion date of the Spark job in the format YYYY-MM-DDThh:mm:ss. Crawler processes Spark jobs completed after the latest of a) the max completion date among already processed jobs (stored in the database) b) this option. In the first run, when there are niether processed jobs in the database nor this option is specified, the crawler starts with the earliest completed job in Spark History.|
 
 This will start the main loop of the crawler. It gets new completed apps, processes and stores them in the database. When all the new apps are processed the crawler sleeps `sleep_seconds` (see config.ini) before the next iteration. To exit the loop, kill the process.
+
 
 ### Import Kibana Demo Dashboard
 [Kibana directory](spot/kibana/) contains objects which can be 
@@ -224,9 +235,3 @@ Description of available metrics can be found in [YARN documentation](https://ha
 
 It is planned to enrich Spark jobs metadata with the YARN metadata in future. 
 For instance it would add exact details which are not available from Spark History alone, e.g. vCoresSeconds and memorySeconds.
-### Common issues
-<b>Issue</b>: RequestError(400, 'illegal_argument_exception', 'Limit of total fields [1000] in index [<spot_index>] has been exceeded')
-
-Solution: The limit can be increased using Elasticsearch query:
-PUT /<spot_index>/_settings
-{"index.mapping.total_fields.limit": 2000}
