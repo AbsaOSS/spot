@@ -13,7 +13,7 @@
 
 import logging
 from pprint import pprint
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 from spot.crawler.commons import default_enrich
@@ -37,7 +37,7 @@ _default_apptypes = ['all', 'SPARK', 'MAPREDUCE']
 
 
 def datetime_to_timestamp_ms(dt):
-    return round(dt.timestamp()* 1000)
+    return round(dt.timestamp() * 1000)
 
 
 def timestamp_ms_to_datetime(ts):
@@ -70,7 +70,7 @@ class YarnWrapper:
 
     def _add_spot_meta(self, doc):
         doc['spot'] = {
-            'time_processed': datetime.utcnow(),
+            'time_processed': datetime.now(tz=timezone.utc),
             'yarn_host': self._host
         }
         return doc

@@ -48,7 +48,7 @@ time_units = {
     'd': 24 * 60 * 60 * 1000
 }
 
-date_formats = ["%d-%m-%Y %H:%M:%S %z", "%d-%m-%Y %H:%M:%S"]
+date_formats = ["%d-%m-%Y %H:%M:%S %z", "%d-%m-%Y %H:%M:%S", "%Y-%m-%d %H:%M:%S"]
 info_date_formats = ['%d-%m-%Y', '%Y-%m-%d']
 
 
@@ -56,7 +56,9 @@ def parse_date(text, formats=date_formats):
     """ Try parsing string to date using list of formats"""
     for fmt in formats:
         try:
-            return datetime.strptime(text, fmt)
+            result = datetime.strptime(text, fmt)
+            logger.debug(f"parsed date string {text} AS {result}")
+            return result
         except ValueError:
             pass
     logger.warning(f"No valid date format found for {text}")

@@ -12,7 +12,8 @@
 # limitations under the License.
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
+from dateutil import parser, tz
 
 import spot.crawler.history_api as history_api
 from spot.crawler.commons import get_last_attempt, parse_to_bytes, parse_to_bytes_default_MiB, parse_to_bytes_default_KiB,\
@@ -134,7 +135,7 @@ _cast_sparkProperties_dict = {
     'spark_sql_broadcastTimeout': parse_to_ms,
 }
 
-_dt_format = "%Y-%m-%dT%H:%M:%S.%f%Z"
+# _dt_format = "%Y-%m-%dT%H:%M:%S.%f%Z" # remove
 
 
 class HistoryAggregator:
@@ -143,15 +144,13 @@ class HistoryAggregator:
                  spark_history_base_url,
                  remove_keys_dict=_remove_keys_dict,
                  time_keys_dict=_time_keys_dict,
-                 cast_sparkProperties_dict = _cast_sparkProperties_dict,
-                 dt_format=_dt_format,
+                 cast_sparkProperties_dict=_cast_sparkProperties_dict,
                  last_attempt_only=False):
         logger.debug('Initialized hist aggregator')
         self._hist = history_api.SparkHistory(spark_history_base_url)
         self._remove_keys_dict = remove_keys_dict
         self._time_keys_dict = time_keys_dict
         self.cast_sparkProperties_dict = cast_sparkProperties_dict
-        self._dt_format = dt_format
         self.last_attempt_only = last_attempt_only
 
     def _remove_keys(self, doc, doc_type):
@@ -166,7 +165,11 @@ class HistoryAggregator:
         if (doc is not None) and (key_list is not None):
             for key in key_list:
                 if key in doc:
-                    doc[key] = datetime.strptime(doc.get(key), self._dt_format)
+                    str_val = doc.get(key)
+                    #date_val = datetime.strptime(str_val, self._dt_format) #  remove
+                    date_val = parser.parse(str_val, yearfirst=True)
+                    doc[key] = date_val
+                    logger.debug(f"Parsed date string {str_val} AS {date_val}")
         return doc
 
     # for sending API requests
@@ -175,7 +178,7 @@ class HistoryAggregator:
         if dt is not None:
             # Spark hist cannot understand microseconds
             # It needs format 2020-01-15T14:59:33.707GMT
-            return dt.isoformat(sep='T', timespec='milliseconds') + 'GMT'
+            return dt.astimezone(tz=timezone.utc).replace(tzinfo=None).isoformat(sep='T', timespec='milliseconds') + 'GMT'
         return None
 
     def _process_sparkProperties(self, alist):
@@ -242,7 +245,6 @@ class HistoryAggregator:
                                            apps_limit=apps_limit)
         logger.debug(f'{len(apps)} apps found')
 
-        # we assume the app are returned in reverses chronological order
         for app in reversed(apps):
             yield self._process_app(app)
 

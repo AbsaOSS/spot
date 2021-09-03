@@ -13,7 +13,7 @@
 
 import logging
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pprint import pprint
 from json.decoder import JSONDecodeError
 
@@ -109,7 +109,7 @@ class Crawler:
             f"Failed to process {stage_name} for app: {id} error: {error_msg}")
         err = {
             'spot': {
-                'time_processed': datetime.now(),
+                'time_processed': datetime.now(tz=timezone.utc),
                 'spark_app_id': id,
                 'history_host': self._history_host,
                 'error': {
@@ -182,7 +182,7 @@ class Crawler:
     def _process_app(self, app):
         app['history_host'] = self._history_host
         app['spot'] = {
-            'time_processed': datetime.now(),
+            'time_processed': datetime.now(tz=timezone.utc),
             'history_host': self._history_host
         }
         success = self._process_raw(app)
@@ -232,7 +232,7 @@ class Crawler:
         :param finish_time: end time of the time step
         :return: number of new runs processed
         """
-        processing_start = datetime.now()
+        processing_start = datetime.now(tz=timezone.utc)
         logger.debug(
             f"Processing completed apps within the time step from {start_time} to {finish_time}")
         apps = self._get_next_completed_app(min_end_date=start_time,
@@ -276,7 +276,7 @@ class Crawler:
 
         delta = timedelta(seconds=self.time_step_seconds)
         step_start = window_start
-        processing_start = datetime.now()
+        processing_start = datetime.now(tz=timezone.utc)
         new_counter = 0
         step_counter = 0
         logger.info(f"Starting processing of time window. window_start: {window_start}, window_end: {window_end}" )
@@ -304,7 +304,7 @@ class Crawler:
 
         :return: number of new processed runs
         """
-        time_now = datetime.now()
+        time_now = datetime.now(tz=timezone.utc)
         # interval to look back
         min_completion_time = time_now - self.lookback_delta
 
@@ -327,7 +327,7 @@ class Crawler:
 
         :return: list of new runs
         """
-        processing_start = datetime.now()
+        processing_start = datetime.now(tz=timezone.utc)
         max_end_date = processing_start - timedelta(seconds=self.completion_timeout_seconds)
 
         logger.info(
@@ -386,7 +386,7 @@ class Crawler:
                                  f'to tabu list')
 
     def log_processing_stats(self, start_time, runs_number):
-        delta_seconds = (datetime.now() -
+        delta_seconds = (datetime.now(tz=timezone.utc) -
                          start_time).total_seconds()
         per_hour = runs_number * 3600 / delta_seconds
         logger.info(f"processed {runs_number} runs "

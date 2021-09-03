@@ -17,6 +17,7 @@ from elasticsearch.helpers import bulk
 from elasticsearch.exceptions import AuthorizationException, RequestError
 import pandas as pd
 from datetime import datetime, timedelta
+from dateutil import parser, tz
 import re
 import json
 
@@ -172,14 +173,12 @@ class Elastic:
         res_time = self.__do_request(self._es.search,
                                     index=self._agg_index,
                                     body=body_max_end_time)
-        # es uses epoch_millis internally
-        timestamp = res_time['aggregations']['max_endTime']['value']
-        if timestamp is None:
-            return None, id_set
-
         # elastic search does not understand it's own internal time format in queries,
         # therefore using string
         str_max_end_time = res_time['aggregations']['max_endTime']['value_as_string']
+        if str_max_end_time is None:
+            return None, id_set
+
         # get list of ids fot the same date
         body_id_list = {
             "query": {
@@ -197,7 +196,9 @@ class Elastic:
         for hit in res_ids['hits']['hits']:
             id_set.add(hit['_source']['id'])
 
-        max_end_time = datetime.utcfromtimestamp(timestamp/1000.0)
+        # max_end_time = datetime.utcfromtimestamp(timestamp/1000.0) # remove
+        max_end_time = parser.parse(str_max_end_time, yearfirst=True)
+
         return max_end_time, id_set
 
     def get_processed_ids(self, end_time_min, end_time_max, size=10000):
@@ -277,11 +278,13 @@ class Elastic:
                                      index=self._yarn_apps_index,
                                      body=body_max_end_time)
         # es uses epoch_millis internally
-        timestamp = res_time['aggregations']['max_endTime']['value']
-        if timestamp is None:
+        str_max_end_time = res_time['aggregations']['max_endTime']['value_as_string']
+        if str_max_end_time is None:
             return None
 
-        max_end_time = datetime.utcfromtimestamp(timestamp/1000.0)
+        # max_end_time = datetime.utcfromtimestamp(timestamp/1000.0) # remove
+        max_end_time = parser.parse(str_max_end_time, yearfirst=True)
+
         return max_end_time
 
     def _prepare_yarn_apps(self, apps):
@@ -389,8 +392,8 @@ def main():
     conf = SpotConfig()
     elastic = Elastic(conf)
 
-    # min_end_time = datetime.now() - timedelta(hours=365*24)
-    # max_end_time = datetime.now() - timedelta(seconds=1800)
+    # min_end_time = datetime.now(tz=timezone.utc) - timedelta(hours=365*24)
+    # max_end_time = datetime.now(tz=timezone.utc) - timedelta(seconds=1800)
 
     # completed_ids = elastic.get_set_of_processed_ids(min_end_time, max_end_time)
 
