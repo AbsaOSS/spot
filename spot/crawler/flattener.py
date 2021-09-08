@@ -13,6 +13,7 @@
 
 import pandas as pd
 import numpy as np
+from datetime import datetime
 
 import logging
 
@@ -54,9 +55,10 @@ def rsd(series):
 # This dictionary defines which aggregations are applied to each column type
 # see https://pandas.pydata.org/pandas-docs/stable/reference/series.html
 default_type_aggregations = {
-    np.number: [DF.min, DF.max, DF.sum, DF.mean, DF.std, DF.nunique, count_zeroes, count_not_null, rsd],
+    np.number: [DF.min, DF.max, DF.sum, DF.mean, DF.nunique, count_zeroes, count_not_null],  # other possible:  DF.std, rsd
     np.object: [count_not_null, pd.Series.nunique, concat_unique_values], # corresponds to string type
     np.datetime64: [min, max],
+    datetime: [min, max],
     bool: [DF.any, DF.all, DF.sum]
 }
 
@@ -73,10 +75,10 @@ def aggregate_by_col_type(df, type_aggregations=default_type_aggregations):
     if n == 0:
         return result
     # apply aggregations to columns of different types
-    for t, aggs in type_aggregations.items(): # t - column type, aggs - aggregations
+    for t, aggs in type_aggregations.items():  # t - column type, aggs - aggregations
         # select subset of columns of type t
         subset = df.select_dtypes([t])
-        if len(subset.columns) ==0: # if no columns of selected type
+        if len(subset.columns) == 0:  # if no columns of selected type
             continue
         # apply aggregations for the given type
         res1 = subset.agg(aggs)
@@ -329,7 +331,4 @@ def calculate_summary(attempt, aggs):
             summary['storage_memory_usage'] = storage_memory_usage
             unused_storage_memory_bytes = aggs['allexecutors']['executors']['maxMemory']['sum'] - est_peak_memory_usage
             summary['x_unused_storage_memory_bytes'] = unused_storage_memory_bytes
-
-
-
     return summary

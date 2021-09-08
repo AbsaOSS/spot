@@ -58,6 +58,10 @@ class SpotConfig(Config):
         return self.get_property('SPARK_HISTORY', 'api_base_url')
 
     @property
+    def history_ssl_path(self):
+        return self.get_property('SPARK_HISTORY', 'ssl_path')
+
+    @property
     def crawler_sleep_seconds(self):
         str_val = self.get_property('CRAWLER', 'sleep_seconds')
         if str_val.isdigit():

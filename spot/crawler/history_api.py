@@ -20,13 +20,17 @@ logger = logging.getLogger(__name__)
 
 
 class SparkHistory:
-    def __init__(self, spark_history_base_url):
+    def __init__(self, spark_history_base_url, ssl_path=None):
         self._spark_history_base_url = spark_history_base_url
+        self.verify = ssl_path
         self._session = None
 
     def _init_session(self):
         logger.debug('starting new Spark History session')
         self._session = requests.Session()
+        if self.verify:
+            logger.debug(f"Using cert: {self.verify}")
+            self._session.verify = self.verify
         retries = requests.packages.urllib3.util.retry.Retry(total=10, backoff_factor=1, status_forcelist=['503'])
         adapter = requests.adapters.HTTPAdapter(max_retries=retries)
         self._session.mount(self._spark_history_base_url, adapter)

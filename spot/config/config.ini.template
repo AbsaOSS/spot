@@ -1,5 +1,6 @@
 [SPARK_HISTORY]
 api_base_url = http://localhost:18080/api/v1
+# ssl_path = /path/to/mycert.pem
 
 [CRAWLER]
 # Time between pulling of new completed runs from Spark History

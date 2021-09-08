@@ -61,6 +61,7 @@ class DefaultSaver:
 class Crawler:
 
     def __init__(self, spark_history_url,
+                 ssl_path=None,
                  name_filter_func=_include_all_filter,
                  app_specific_obj=None,
                  save_obj=DefaultSaver(),
@@ -73,7 +74,7 @@ class Crawler:
                  skip_exceptions=False,
                  retry_attempts=24,
                  retry_sleep_seconds=900):
-        self._agg = HistoryAggregator(spark_history_url)
+        self._agg = HistoryAggregator(spark_history_url, ssl_path=ssl_path)
         self._history_host = urlparse(spark_history_url).hostname
         self._name_filter_func = name_filter_func
         self._save_obj = save_obj
@@ -428,6 +429,7 @@ def main():
     logger.debug(f'Will get apps completed after: {last_seen_end_date}')
 
     crawler = Crawler(conf.spark_history_url,
+                      ssl_path=conf.history_ssl_path,
                       app_specific_obj=menas_ag,
                       save_obj=elastic,
                       last_date=last_seen_end_date,

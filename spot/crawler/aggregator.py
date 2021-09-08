@@ -142,12 +142,13 @@ class HistoryAggregator:
 
     def __init__(self,
                  spark_history_base_url,
+                 ssl_path=None,
                  remove_keys_dict=_remove_keys_dict,
                  time_keys_dict=_time_keys_dict,
                  cast_sparkProperties_dict=_cast_sparkProperties_dict,
                  last_attempt_only=False):
-        logger.debug('Initialized hist aggregator')
-        self._hist = history_api.SparkHistory(spark_history_base_url)
+        logger.debug(f"Initializing hist aggregator. base URL: {spark_history_base_url} cert: {ssl_path}")
+        self._hist = history_api.SparkHistory(spark_history_base_url, ssl_path=ssl_path)
         self._remove_keys_dict = remove_keys_dict
         self._time_keys_dict = time_keys_dict
         self.cast_sparkProperties_dict = cast_sparkProperties_dict

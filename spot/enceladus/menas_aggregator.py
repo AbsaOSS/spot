@@ -244,11 +244,11 @@ class MenasAggregator:
         return new_checkpoints
 
     def post_aggregate(self, agg):
-        """ Process aggreagations of Enceladus runs.
+        """ Process aggregations of Enceladus runs.
         This method is called on each aggregation after enrich(app), aggregate(app) and flatten(app).
         """
         post_aggregations = {}
-        input_in_memory = get_attribute(agg, ['attempt','aggs', 'stages', 'inputBytes', 'max'])
+        input_in_memory = get_attribute(agg, ['attempt', 'aggs', 'stages', 'inputBytes', 'max'])
         if input_in_memory is None:
             logger.warning(f"Missing attempt.aggs.stages.inputBytes.max in "
                            f"app  {agg.get('id', 'missing_app_id')} "
@@ -287,13 +287,15 @@ class MenasAggregator:
             post_aggregations['input_in_storage_HDFS_blocks'] = bytes_to_hdfs_block(input_in_storage)
             if input_in_memory != 0 and input_in_storage != 0:
                 post_aggregations['input_deserialization_factor'] = input_in_memory /input_in_storage
-                post_aggregations['peak_to_input_memory_factor'] = est_peak_memory / input_in_storage
+                if est_peak_memory:
+                    post_aggregations['peak_to_input_memory_factor'] = est_peak_memory / input_in_storage
 
         if output_in_storage:
             post_aggregations['output_in_storage_HDFS_blocks'] = bytes_to_hdfs_block(output_in_storage)
             if output_in_memory != 0 and output_in_storage != 0:
                 post_aggregations['output_deserialization_factor'] = output_in_memory / output_in_storage
-                post_aggregations['peak_to_output_memory_factor'] = est_peak_memory / output_in_storage
+                if est_peak_memory:
+                    post_aggregations['peak_to_output_memory_factor'] = est_peak_memory / output_in_storage
 
         if input_in_storage and output_in_storage and input_in_storage != 0 and output_in_storage != 0:
             post_aggregations['output_to_input_storage_size_ratio'] = output_in_storage / input_in_storage
