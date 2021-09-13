@@ -31,7 +31,7 @@ class SparkHistory:
         if self.verify:
             logger.debug(f"Using cert: {self.verify}")
             self._session.verify = self.verify
-        retries = requests.packages.urllib3.util.retry.Retry(total=10, backoff_factor=1, status_forcelist=['503'])
+        retries = requests.packages.urllib3.util.retry.Retry(total=10, backoff_factor=1, status_forcelist=[502, 503, 504])
         adapter = requests.adapters.HTTPAdapter(max_retries=retries)
         self._session.mount(self._spark_history_base_url, adapter)
 

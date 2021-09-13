@@ -13,13 +13,9 @@
 
 import pandas as pd
 import numpy as np
-from datetime import datetime
-
 import logging
 
-from spot.crawler.elastic import Elastic
-from spot.utils.config import SpotConfig
-from spot.crawler.commons import get_last_attempt, bytes_to_hdfs_block, parse_to_bytes, bytes_to_gb
+from spot.crawler.commons import get_last_attempt, bytes_to_hdfs_block, bytes_to_gb
 
 import spot.utils.setup_logger
 
@@ -56,9 +52,12 @@ def rsd(series):
 # see https://pandas.pydata.org/pandas-docs/stable/reference/series.html
 default_type_aggregations = {
     np.number: [DF.min, DF.max, DF.sum, DF.mean, DF.nunique, count_zeroes, count_not_null],  # other possible:  DF.std, rsd
-    np.object: [count_not_null, pd.Series.nunique, concat_unique_values], # corresponds to string type
-    np.datetime64: [min, max],
-    datetime: [min, max],
+    np.object: [count_not_null, pd.Series.nunique, concat_unique_values],  # corresponds to string type
+    np.datetime64: [min, max],  # without timezone. Does not overlap with timezone aware columns
+    'datetime64[ns, UTC]': [min, max],  # with ANY timezone (not limited to UTC). Preserves original column timezone.
+                                        # WARNING: Column must have a single timezone.
+                                        # If different timezones are in the same column
+                                        # pandas does not recognize it as a datetime at all and uses 'object' instead
     bool: [DF.any, DF.all, DF.sum]
 }
 

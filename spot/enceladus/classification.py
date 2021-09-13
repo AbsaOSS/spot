@@ -11,8 +11,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import datetime
-from spot.crawler.commons import parse_date, info_date_formats
+from spot.crawler.commons import parse_date_to_utc
+from dateutil import tz
+
+DEFAULT_TZINFO = tz.tzutc()
 
 
 def is_enceladus_app(name):
@@ -30,11 +32,11 @@ def get_classification(name):
             'dataset': values[3],
             'dataset_version': int(values[4]) if values[4].isdigit() else values[4],
             #'info_date': values[5],
-            'info_date_casted': parse_date(values[5], formats=info_date_formats),
+            'info_date_casted': parse_date_to_utc(values[5], default_tzinfo=DEFAULT_TZINFO),
             'info_version': int(values[6]) if values[6].isdigit() else values[6]
         }
         return classification
-    else: # old naming convention
+    else:  # old naming convention
         return _old_get_classification(name)
 
 
@@ -68,7 +70,7 @@ def _old_get_classification(name):
             'dataset': values[2],
             'dataset_version': int(values[3]) if values[3].isdigit() else values[3],
             #'info_date': values[4],
-            'info_date_casted': parse_date(values[4], formats=info_date_formats),
+            'info_date_casted': parse_date_to_utc(values[4], default_tzinfo=DEFAULT_TZINFO),
             'info_version': int(values[5]) if values[5].isdigit() else values[5]
         }
     return classification

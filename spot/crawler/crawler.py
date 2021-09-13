@@ -13,11 +13,13 @@
 
 import logging
 import time
+
 from datetime import datetime, timedelta, timezone
+from dateutil import tz
 from pprint import pprint
 from json.decoder import JSONDecodeError
-
 from urllib.parse import urlparse
+
 from spot.utils.config import SpotConfig
 from spot.crawler.flattener import flatten_app
 from spot.crawler.aggregator import HistoryAggregator
@@ -403,10 +405,14 @@ def main():
 
     if conf.menas_api_url is not None:
         logger.info(f"adding Menas aggregator, api url {conf.menas_api_url}")
+        menas_default_tzinfo = tz.gettz(name=conf.menas_default_timezone)
+        if menas_default_tzinfo is None:
+            menas_default_tzinfo = tz.tzutc()
         menas_ag = MenasAggregator(conf.menas_api_url,
                                    conf.menas_username,
                                    conf.menas_password,
-                                   ssl_path=conf.menas_ssl_path)
+                                   ssl_path=conf.menas_ssl_path,
+                                   default_tzinfo=menas_default_tzinfo)
     else:
         menas_ag = None
         logger.info(
@@ -447,7 +453,6 @@ def main():
 
     while True:
         crawler.process_new_runs()
-        #crawler.process_all_new_runs()
         elastic.log_indexes_stats()
         time.sleep(sleep_seconds)
 

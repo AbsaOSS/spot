@@ -5,3 +5,4 @@ numpy
 boto3
 pycognito
 requests-aws4auth
+dateutil

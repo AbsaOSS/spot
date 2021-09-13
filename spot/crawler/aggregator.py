@@ -13,11 +13,10 @@
 
 import logging
 from datetime import datetime, timezone
-from dateutil import parser, tz
 
 import spot.crawler.history_api as history_api
 from spot.crawler.commons import get_last_attempt, parse_to_bytes, parse_to_bytes_default_MiB, parse_to_bytes_default_KiB,\
-    string_to_bool, parse_to_ms
+    string_to_bool, parse_to_ms, parse_date_to_utc
 import spot.utils.setup_logger
 
 logger = logging.getLogger(__name__)
@@ -89,6 +88,9 @@ _cast_sparkProperties_dict = {
     'spark_dynamicAllocation_maxExecutors': int,
     'spark_dynamicAllocation_minExecutors': int,
     'spark_yarn_maxAppAttempts': int,
+    'spark_yarn_containerLauncherMaxThreads': int,
+    'spark_yarn_submit_file_replication' : int,
+
 
     'spark_dynamicAllocation_executorAllocationRatio': float,
     'spark_memory_fraction': float,
@@ -105,6 +107,8 @@ _cast_sparkProperties_dict = {
     'spark_sql_hive_convertMetastoreParquet': string_to_bool,
     'spark_sql_parquet_writeLegacyFormat': string_to_bool,
     'spark_history_kerberos_enabled': string_to_bool,
+    'spark_yarn_preserve_staging_files': string_to_bool,
+    'spark_yarn_submit_waitAppCompletion': string_to_bool,
 
     'spark_driver_memory': parse_to_bytes,
     'spark_executor_memory': parse_to_bytes,
@@ -118,6 +122,7 @@ _cast_sparkProperties_dict = {
     'spark_executor_memoryOverhead': parse_to_bytes_default_MiB,
     'spark_yarn_driver_memoryOverhead': parse_to_bytes_default_MiB,
     'spark_yarn_executor_memoryOverhead': parse_to_bytes_default_MiB,
+    'spark_yarn_am_memoryOverhead': parse_to_bytes_default_MiB,
     'spark_executor_pyspark_memory': parse_to_bytes_default_MiB,
     'spark_reducer_maxSizeInFlight': parse_to_bytes_default_MiB,
     'spark_kryoserializer_buffer_max': parse_to_bytes_default_MiB,
@@ -133,6 +138,9 @@ _cast_sparkProperties_dict = {
     'spark_sql_broadcastTimeout': parse_to_ms,
     'spark_executor_heartbeatInterval': parse_to_ms,
     'spark_sql_broadcastTimeout': parse_to_ms,
+    'spark_dynamicAllocation_executorIdleTimeout': parse_to_ms,
+    'spark_network_timeout': parse_to_ms,
+    'spark_yarn_scheduler_heartbeat_interval-ms': parse_to_ms
 }
 
 # _dt_format = "%Y-%m-%dT%H:%M:%S.%f%Z" # remove
@@ -167,10 +175,8 @@ class HistoryAggregator:
             for key in key_list:
                 if key in doc:
                     str_val = doc.get(key)
-                    #date_val = datetime.strptime(str_val, self._dt_format) #  remove
-                    date_val = parser.parse(str_val, yearfirst=True)
+                    date_val = parse_date_to_utc(str_val, yearfirst=True, dayfirst=False)
                     doc[key] = date_val
-                    logger.debug(f"Parsed date string {str_val} AS {date_val}")
         return doc
 
     # for sending API requests

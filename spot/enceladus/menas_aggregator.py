@@ -12,10 +12,11 @@
 # limitations under the License.
 
 import logging
+from dateutil import tz
 
 from spot.enceladus.menas_api import MenasApi
 import spot.enceladus.classification as clsf
-from spot.crawler.commons import cast_string_to_value, get_attribute, bytes_to_hdfs_block, parse_date, date_formats, info_date_formats, parse_to_bytes,parse_to_bytes_default_MiB, parse_percentage, parse_command_line_args
+from spot.crawler.commons import cast_string_to_value, get_attribute, bytes_to_hdfs_block, parse_to_bytes, parse_to_bytes_default_MiB, parse_percentage, parse_command_line_args, parse_date_to_utc
 import spot.utils.setup_logger
 
 
@@ -88,12 +89,13 @@ def _match_run(run, app_id, clfsion):
 
 class MenasAggregator:
 
-    def __init__(self, api_base_url, username, password, ssl_path=None):
-        logger.debug('starting menas aggregator')
+    def __init__(self, api_base_url, username, password, ssl_path=None, default_tzinfo=tz.tzutc()):
+        logger.debug(f"starting menas aggregator url: {api_base_url} ssl:{ssl_path} default_tzinfo: {default_tzinfo}")
         self.menas_api = MenasApi(api_base_url, username, password, ssl_path=ssl_path)
+        self.default_tzinfo = default_tzinfo
+        clsf.DEFAULT_TZINFO = default_tzinfo
 
-    @staticmethod
-    def cast_run_data(run):
+    def cast_run_data(self, run):
         additional_info = run['controlMeasure']['metadata']['additionalInfo']
         for key, value in additional_info.items():
             if key in _cast_additionalInfo_dict:
@@ -106,12 +108,12 @@ class MenasAggregator:
                     if arg_name in _remove_cmd_line_args:
                         cmd_args[arg_name] = 'spot_removed'
 
-        start_date_time = parse_date(run.get('startDateTime'), formats=date_formats)
+        start_date_time = parse_date_to_utc(run.get('startDateTime'), default_tzinfo=self.default_tzinfo)
         run['startDateTime'] = start_date_time
 
         # handle info dates
-        additional_info['enceladus_info_date'] = parse_date(additional_info['enceladus_info_date'], formats=info_date_formats)
-        run['controlMeasure']['metadata']['informationDate'] = parse_date(run['controlMeasure']['metadata']['informationDate'], formats=info_date_formats)
+        additional_info['enceladus_info_date'] = parse_date_to_utc(additional_info['enceladus_info_date'], default_tzinfo=self.default_tzinfo)
+        run['controlMeasure']['metadata']['informationDate'] = parse_date_to_utc(run['controlMeasure']['metadata']['informationDate'], default_tzinfo=self.default_tzinfo)
 
         return run
 
@@ -132,8 +134,7 @@ class MenasAggregator:
             return []
         return runs
 
-    @staticmethod
-    def is_matching_app(app):
+    def is_matching_app(self, app):
         app_name = app.get('name')
         return clsf.is_enceladus_app(app_name)
 
@@ -170,8 +171,7 @@ class MenasAggregator:
         #data['schema'] = schema
         return app
 
-    @staticmethod
-    def aggregate(app):
+    def aggregate(self, app):
         logger.debug(f"{app['name']} {app['id']}")
         for attempt in app.get('attempts'):
             run = attempt.get('app_specific_data', None).get('enceladus_run', None)
@@ -180,11 +180,10 @@ class MenasAggregator:
                 raw_checkpoints = run.get('controlMeasure', None).pop('checkpoints', None)
                 if raw_checkpoints is not None:
                     # add aggregations of checkpoints to run
-                    run['controlMeasure']['checkpoints'] = MenasAggregator._aggregate_checkpoints(raw_checkpoints)
+                    run['controlMeasure']['checkpoints'] = self._aggregate_checkpoints(raw_checkpoints)
         return app
 
-    @staticmethod
-    def _aggregate_checkpoints(raw_checkpoints):
+    def _aggregate_checkpoints(self, raw_checkpoints):
         new_checkpoints = {'elements_count': len(raw_checkpoints)}
         controls_match = True
         agg_checkpoints = {}
@@ -192,8 +191,10 @@ class MenasAggregator:
         num_controls = 0
         for checkpoint in raw_checkpoints:
             checkpoint['name'] = checkpoint['name'].replace(' ', '')
-            process_start_time = parse_date(checkpoint.pop('processStartTime'), formats=date_formats)
-            process_end_time = parse_date(checkpoint.pop('processEndTime'), formats=date_formats)
+            process_start_time = parse_date_to_utc(checkpoint.pop('processStartTime'),
+                                                   default_tzinfo=self.default_tzinfo, fail_on_unknown_format=False)
+            process_end_time = parse_date_to_utc(checkpoint.pop('processEndTime'),
+                                                 default_tzinfo=self.default_tzinfo, fail_on_unknown_format=False)
 
             # if the times cannot be casted correctly, the fields are skipped, not to interfere with ES schema
             if (process_start_time is not None) and (process_end_time is not None):

@@ -13,6 +13,7 @@
 
 import math
 from datetime import datetime
+from dateutil import parser, tz
 import logging
 import re
 
@@ -48,21 +49,54 @@ time_units = {
     'd': 24 * 60 * 60 * 1000
 }
 
-date_formats = ["%d-%m-%Y %H:%M:%S %z", "%d-%m-%Y %H:%M:%S", "%Y-%m-%d %H:%M:%S"]
+
 info_date_formats = ['%d-%m-%Y', '%Y-%m-%d']
 
 
-def parse_date(text, formats=date_formats):
-    """ Try parsing string to date using list of formats"""
-    for fmt in formats:
-        try:
-            result = datetime.strptime(text, fmt)
-            logger.debug(f"parsed date string {text} AS {result}")
-            return result
-        except ValueError:
-            pass
-    logger.warning(f"No valid date format found for {text}")
-    return
+def utc_from_timestamp_ms(timestamp_ms, default_tz=tz.tzutc()):
+    """Converts timestamp in milliseconds to python datetime with timezone
+
+    :param timestamp_ms: milliseconds since epoch
+    :param default_tz: timezone to be applied
+    :return: timezone aware datetime
+    """
+    return datetime.fromtimestamp(timestamp_ms / 1000.0, tz=default_tz)
+
+
+def datetime_to_utc_timestamp(dt, default_tz=tz.tzutc()):
+    """Convert datetime object to UTC timestamp in milliseconds
+
+    :param dt: datetime object
+    :param default_tz: timezone to assume when a naive (no tz attached) datetime is input
+    :return: utc timestamp in microseconds
+    """
+    return dt.replace(tzinfo=dt.tzinfo or default_tz).astimezone(tz.tzutc()).timestamp() * 1000
+
+
+def parse_date_to_utc(date_str, default_tzinfo=tz.tzutc(), dayfirst=True, yearfirst=True, fuzzy=False,
+                      fail_on_unknown_format=True):
+    """Parse a string representing datetime into datetime object with UTC timezone.
+    When the string does not specify timezone a default default_tzinfo is assumed for conversion.
+
+    :param date_str: input datetime string with timezone
+    :param default_tzinfo: assume timezone when not included, default is UTC
+    :param dayfirst: see dateutil.parse
+    :param yearfirst: see dateutil.parse
+    :param fuzzy: see dateutil.parse
+    :param fail_on_unknown_format: raise ValueError on unknown format (otherwise return None)
+    :return: datetime converted to UTC
+    """
+    try:
+        dt = parser.parse(date_str, dayfirst=dayfirst, yearfirst=yearfirst, fuzzy=fuzzy)
+    except ValueError as ve:
+        logger.warning(f"Failed to parse {date_str}")
+        if fail_on_unknown_format:
+            raise ve
+        return  # return None
+    dt = dt.replace(tzinfo=dt.tzinfo or default_tzinfo)  # set to default timezone in not specified
+    result = dt.astimezone(tz.tzutc())
+    logger.debug(f"parsed datetime string {date_str} default tz: {default_tzinfo} AS {result} with timezone {result.tzname()}")
+    return result
 
 
 def isint(in_str):

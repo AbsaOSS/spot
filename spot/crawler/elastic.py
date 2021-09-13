@@ -15,13 +15,9 @@ import logging
 import elasticsearch
 from elasticsearch.helpers import bulk
 from elasticsearch.exceptions import AuthorizationException, RequestError
-import pandas as pd
-from datetime import datetime, timedelta
-from dateutil import parser, tz
 import re
-import json
 
-from spot.crawler.commons import sizeof_fmt, num_elements
+from spot.crawler.commons import sizeof_fmt, num_elements, parse_date_to_utc
 from spot.utils.config import SpotConfig
 from spot.utils.auth import auth_config
 import spot.utils.setup_logger
@@ -196,8 +192,7 @@ class Elastic:
         for hit in res_ids['hits']['hits']:
             id_set.add(hit['_source']['id'])
 
-        # max_end_time = datetime.utcfromtimestamp(timestamp/1000.0) # remove
-        max_end_time = parser.parse(str_max_end_time, yearfirst=True)
+        max_end_time = parse_date_to_utc(str_max_end_time, dayfirst=False)
 
         return max_end_time, id_set
 
@@ -282,8 +277,7 @@ class Elastic:
         if str_max_end_time is None:
             return None
 
-        # max_end_time = datetime.utcfromtimestamp(timestamp/1000.0) # remove
-        max_end_time = parser.parse(str_max_end_time, yearfirst=True)
+        max_end_time = parse_date_to_utc(str_max_end_time, dayfirst=False)
 
         return max_end_time
 

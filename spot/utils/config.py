@@ -216,6 +216,10 @@ class SpotConfig(Config):
     def menas_password(self):
         return self.get_property('MENAS', 'password')
 
+    @property
+    def menas_default_timezone(self):
+        return self.get_property('MENAS', 'default_timezone')
+
 
     @property
     def yarn_api_base_url(self):

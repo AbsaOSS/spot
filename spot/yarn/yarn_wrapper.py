@@ -16,7 +16,7 @@ from pprint import pprint
 from datetime import datetime, timezone
 
 
-from spot.crawler.commons import default_enrich
+from spot.crawler.commons import default_enrich, datetime_to_utc_timestamp, utc_from_timestamp_ms
 from spot.enceladus.classification import get_classification, is_enceladus_app, get_tag
 import spot.yarn.yarn_api as yarn_api
 from urllib.parse import urlparse
@@ -37,11 +37,7 @@ _default_apptypes = ['all', 'SPARK', 'MAPREDUCE']
 
 
 def datetime_to_timestamp_ms(dt):
-    return round(dt.timestamp() * 1000)
-
-
-def timestamp_ms_to_datetime(ts):
-    return datetime.fromtimestamp(ts / 1000.0)
+    return round(datetime_to_utc_timestamp)
 
 
 def _cast_timestamps(doc, doc_type):
@@ -49,7 +45,7 @@ def _cast_timestamps(doc, doc_type):
     if (doc is not None) and (key_list is not None):
         for key in key_list:
             if key in doc:
-                doc[key] = timestamp_ms_to_datetime(doc.get(key))
+                doc[key] = utc_from_timestamp_ms(doc.get(key))
     return doc
 
 
