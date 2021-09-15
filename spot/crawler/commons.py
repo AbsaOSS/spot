@@ -12,8 +12,7 @@
 # limitations under the License.
 
 import math
-from datetime import datetime
-from dateutil import parser, tz
+from datetime import datetime, timezone
 import logging
 import re
 
@@ -23,6 +22,8 @@ import spot.utils.setup_logger
 logger = logging.getLogger(__name__)
 
 HDFS_block_size = (128 * 1024 * 1024)
+
+escape_cmd_dates = set('report-date')
 
 size_units = {
     'k': 1024,
@@ -50,10 +51,7 @@ time_units = {
 }
 
 
-info_date_formats = ['%d-%m-%Y', '%Y-%m-%d']
-
-
-def utc_from_timestamp_ms(timestamp_ms, default_tz=tz.tzutc()):
+def utc_from_timestamp_ms(timestamp_ms, default_tz=timezone.utc):
     """Converts timestamp in milliseconds to python datetime with timezone
 
     :param timestamp_ms: milliseconds since epoch
@@ -63,40 +61,30 @@ def utc_from_timestamp_ms(timestamp_ms, default_tz=tz.tzutc()):
     return datetime.fromtimestamp(timestamp_ms / 1000.0, tz=default_tz)
 
 
-def datetime_to_utc_timestamp(dt, default_tz=tz.tzutc()):
+def datetime_to_utc_timestamp_ms(dt, default_tz=timezone.utc):
     """Convert datetime object to UTC timestamp in milliseconds
 
     :param dt: datetime object
     :param default_tz: timezone to assume when a naive (no tz attached) datetime is input
     :return: utc timestamp in microseconds
     """
-    return dt.replace(tzinfo=dt.tzinfo or default_tz).astimezone(tz.tzutc()).timestamp() * 1000
+    return dt.replace(tzinfo=dt.tzinfo or default_tz).astimezone(timezone.utc).timestamp() * 1000
 
 
-def parse_date_to_utc(date_str, default_tzinfo=tz.tzutc(), dayfirst=True, yearfirst=True, fuzzy=False,
-                      fail_on_unknown_format=True):
-    """Parse a string representing datetime into datetime object with UTC timezone.
-    When the string does not specify timezone a default default_tzinfo is assumed for conversion.
-
-    :param date_str: input datetime string with timezone
-    :param default_tzinfo: assume timezone when not included, default is UTC
-    :param dayfirst: see dateutil.parse
-    :param yearfirst: see dateutil.parse
-    :param fuzzy: see dateutil.parse
-    :param fail_on_unknown_format: raise ValueError on unknown format (otherwise return None)
-    :return: datetime converted to UTC
-    """
-    try:
-        dt = parser.parse(date_str, dayfirst=dayfirst, yearfirst=yearfirst, fuzzy=fuzzy)
-    except ValueError as ve:
-        logger.warning(f"Failed to parse {date_str}")
-        if fail_on_unknown_format:
-            raise ve
-        return  # return None
-    dt = dt.replace(tzinfo=dt.tzinfo or default_tzinfo)  # set to default timezone in not specified
-    result = dt.astimezone(tz.tzutc())
-    logger.debug(f"parsed datetime string {date_str} default tz: {default_tzinfo} AS {result} with timezone {result.tzname()}")
-    return result
+def parse_date(date_str, formats, default_tz=timezone.utc, fail_on_unknown_format=True):
+    """ Try parsing string to date using list of formats"""
+    for fmt in formats:
+        try:
+            dt = datetime.strptime(date_str, fmt)
+            dt = dt.replace(tzinfo=dt.tzinfo or default_tz).astimezone(timezone.utc)
+            logger.debug(f"parsed date string {date_str} AS {dt}")
+            return dt
+        except ValueError:
+            pass
+    if fail_on_unknown_format:
+        raise ValueError(f"Failed to parse date string: {date_str} using formats: {formats}")
+    logger.warning(f"Failed to parse date string: {date_str} using formats: {formats}")
+    return
 
 
 def isint(in_str):
@@ -133,7 +121,7 @@ def parse_percentage(text):
     return
 
 
-def parse_command_line_args(text):
+def parse_command_line_args(text, escape_dates=escape_cmd_dates):
     """Parses string of command line args into a dict.
     Only basic parsing is supported at the moment.
     Each parameter starting with '--' is transformed into a key,
@@ -152,6 +140,8 @@ def parse_command_line_args(text):
             # Below we start with space to avoid auto schema inference in Elasticsearch,
             # so that all params are string
             value = ' ' + ''.join(words[1:])
+            if key in escape_dates:  # to avoid value be interpreted as date in elasticsearch
+                value = value + ' ' + key
             result[key] = value
     return result
 

@@ -257,6 +257,8 @@ class Crawler:
                     self._process_app(app)
                     if new_counter % 20 == 0:
                         self.log_processing_stats(processing_start, new_counter)
+                else:
+                    logger.debug(f"skipping app already processed before: {app_id} ")
 
         logger.debug(f"Time step {start_time} to {finish_time} processed. "
                     f"Applications total:{apps_counter}, matched: {matched_counter}, new: {new_counter}")
@@ -422,6 +424,7 @@ def main():
 
     # find starting end date and list of seen apps
     last_seen_end_date, seen_ids = elastic.get_latest_time_ids()
+    logger.debug(f'Latest seen app in the db is from: {last_seen_end_date}')
     logger.debug(
         f'Latest stored end date: {last_seen_end_date} seen apps: {seen_ids}')
 
@@ -432,7 +435,7 @@ def main():
          (last_seen_end_date < cmd_args.min_end_date)):
         last_seen_end_date = cmd_args.min_end_date
         seen_ids = dict()
-    logger.debug(f'Will get apps completed after: {last_seen_end_date}')
+
 
     crawler = Crawler(conf.spark_history_url,
                       ssl_path=conf.history_ssl_path,

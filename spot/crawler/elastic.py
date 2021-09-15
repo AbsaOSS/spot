@@ -17,11 +17,11 @@ from elasticsearch.helpers import bulk
 from elasticsearch.exceptions import AuthorizationException, RequestError
 import re
 
-from spot.crawler.commons import sizeof_fmt, num_elements, parse_date_to_utc
+from spot.crawler.commons import sizeof_fmt, num_elements, utc_from_timestamp_ms
 from spot.utils.config import SpotConfig
 from spot.utils.auth import auth_config
 import spot.utils.setup_logger
-from pprint import pprint
+
 
 logger = logging.getLogger(__name__)
 REQUEST_TIMEOUT = 30
@@ -172,6 +172,7 @@ class Elastic:
         # elastic search does not understand it's own internal time format in queries,
         # therefore using string
         str_max_end_time = res_time['aggregations']['max_endTime']['value_as_string']
+        timestamp = res_time['aggregations']['max_endTime']['value']
         if str_max_end_time is None:
             return None, id_set
 
@@ -192,7 +193,7 @@ class Elastic:
         for hit in res_ids['hits']['hits']:
             id_set.add(hit['_source']['id'])
 
-        max_end_time = parse_date_to_utc(str_max_end_time, dayfirst=False)
+        max_end_time = utc_from_timestamp_ms(timestamp)
 
         return max_end_time, id_set
 
@@ -273,11 +274,11 @@ class Elastic:
                                      index=self._yarn_apps_index,
                                      body=body_max_end_time)
         # es uses epoch_millis internally
-        str_max_end_time = res_time['aggregations']['max_endTime']['value_as_string']
-        if str_max_end_time is None:
+        timestamp = res_time['aggregations']['max_endTime']['value']
+        if timestamp is None:
             return None
 
-        max_end_time = parse_date_to_utc(str_max_end_time, dayfirst=False)
+        max_end_time = utc_from_timestamp_ms(timestamp)
 
         return max_end_time
 

@@ -11,14 +11,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from spot.crawler.commons import parse_date_to_utc
-from dateutil import tz
+from datetime import datetime, timezone
 
-DEFAULT_TZINFO = tz.tzutc()
+
+info_date_formats = ['%d-%m-%Y', '%Y-%m-%d']
 
 
 def is_enceladus_app(name):
     return name.startswith('Enceladus') or _old_is_enceladus_app(name)
+
+
+def parse_info_date(info_date_str):
+    """Parses Enceladus info_date string to datetime, where time is set to 12:00 UTC.
+    The noon time is selected in order to minimize the chance of date change upon timezone transformations.
+    Because, unfortunately, the date type (w/o time) is supported in Elasticsearch with rigid mappings only
+    and not supported in Kibana.
+
+    :param info_date_str:
+    :return: datetime where time is set to noon UTC
+    """
+    for fmt in info_date_formats:
+        try:
+            dt = datetime.strptime(info_date_str, fmt)
+            result = dt.replace(hour=12, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)  # set time to noon UTC
+            return result
+        except ValueError:
+            pass
+    return
 
 
 def get_classification(name):
@@ -31,8 +50,8 @@ def get_classification(name):
             'app_version': values[2],
             'dataset': values[3],
             'dataset_version': int(values[4]) if values[4].isdigit() else values[4],
-            #'info_date': values[5],
-            'info_date_casted': parse_date_to_utc(values[5], default_tzinfo=DEFAULT_TZINFO),
+            'info_date': values[5] + ' info_date',
+            'info_date_casted': parse_info_date(values[5]),
             'info_version': int(values[6]) if values[6].isdigit() else values[6]
         }
         return classification
@@ -69,8 +88,8 @@ def _old_get_classification(name):
             'app_version': values[1],
             'dataset': values[2],
             'dataset_version': int(values[3]) if values[3].isdigit() else values[3],
-            #'info_date': values[4],
-            'info_date_casted': parse_date_to_utc(values[4], default_tzinfo=DEFAULT_TZINFO),
+            'info_date': values[4] + ' info_date',
+            'info_date_casted': parse_info_date(values[4]),
             'info_version': int(values[5]) if values[5].isdigit() else values[5]
         }
     return classification

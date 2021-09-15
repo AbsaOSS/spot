@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 
 import spot.crawler.history_api as history_api
 from spot.crawler.commons import get_last_attempt, parse_to_bytes, parse_to_bytes_default_MiB, parse_to_bytes_default_KiB,\
-    string_to_bool, parse_to_ms, parse_date_to_utc
+    string_to_bool, parse_to_ms
 import spot.utils.setup_logger
 
 logger = logging.getLogger(__name__)
@@ -143,7 +143,11 @@ _cast_sparkProperties_dict = {
     'spark_yarn_scheduler_heartbeat_interval-ms': parse_to_ms
 }
 
-# _dt_format = "%Y-%m-%dT%H:%M:%S.%f%Z" # remove
+_dt_format = "%Y-%m-%dT%H:%M:%S.%fGMT"
+
+
+def _parse_datetime(str_datetime, format=_dt_format):
+    return datetime.strptime(str_datetime, format).replace(tzinfo=timezone.utc)
 
 
 class HistoryAggregator:
@@ -174,9 +178,7 @@ class HistoryAggregator:
         if (doc is not None) and (key_list is not None):
             for key in key_list:
                 if key in doc:
-                    str_val = doc.get(key)
-                    date_val = parse_date_to_utc(str_val, yearfirst=True, dayfirst=False)
-                    doc[key] = date_val
+                    doc[key] = _parse_datetime(doc.get(key))
         return doc
 
     # for sending API requests
