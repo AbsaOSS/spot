@@ -28,7 +28,7 @@ date_formats = ["%d-%m-%Y %H:%M:%S %z", "%Y-%m-%d %H:%M:%S %z", "%d-%m-%Y %H:%M:
 
 _cast_additionalInfo_dict = {
 
-    'conform_executor_memory_overhead': parse_to_bytes_default_MiB,
+    "conform_executor_memory_overhead": parse_to_bytes_default_MiB,
     "std_driver_memory_overhead": parse_to_bytes_default_MiB,
 
     "std_executor_memory": parse_to_bytes,
@@ -48,7 +48,8 @@ _cast_additionalInfo_dict = {
 
 _remove_cmd_line_args = [
     "menas-auth-keytab",
-    "menas-credentials-file"
+    "menas-credentials-file",
+    "report-date"
 ]
 
 
@@ -115,8 +116,8 @@ class MenasAggregator:
         run['startDateTime'] = start_date_time
 
         # handle info dates in order to avoid interpreting as date in Elasticsearch
-        additional_info['enceladus_info_date'] = additional_info['enceladus_info_date'] + ' info_date'
-        run['controlMeasure']['metadata']['informationDate'] = run['controlMeasure']['metadata']['informationDate'] + ' info_date'
+        additional_info['enceladus_info_date'] = clsf.parse_info_date_str(additional_info['enceladus_info_date'])
+        run['controlMeasure']['metadata']['informationDate'] = clsf.parse_info_date_str(run['controlMeasure']['metadata']['informationDate'])
 
         return run
 

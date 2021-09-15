@@ -40,6 +40,18 @@ def parse_info_date(info_date_str):
     return
 
 
+def parse_info_date_str(info_date_str):
+    """Returns an info_date string modified in such a way that Elasticsearch would not attempt to interpret it as a date.
+    Currently there are several different formats of info_date used.
+    If no modification is applied Elasticseach will interpret part of the values as a string and another part as a date
+    which causes a value error and should be avoided.
+
+    :param info_date_str:
+    :return:
+    """
+    return 'str:' + info_date_str
+
+
 def get_classification(name):
     if name.startswith('Enceladus'): # new naming convention
         values = name.split(' ')
@@ -50,7 +62,7 @@ def get_classification(name):
             'app_version': values[2],
             'dataset': values[3],
             'dataset_version': int(values[4]) if values[4].isdigit() else values[4],
-            'info_date': values[5] + ' info_date',
+            'info_date': parse_info_date_str(values[5]),
             'info_date_casted': parse_info_date(values[5]),
             'info_version': int(values[6]) if values[6].isdigit() else values[6]
         }
@@ -88,7 +100,7 @@ def _old_get_classification(name):
             'app_version': values[1],
             'dataset': values[2],
             'dataset_version': int(values[3]) if values[3].isdigit() else values[3],
-            'info_date': values[4] + ' info_date',
+            'info_date': parse_info_date_str(values[4]),
             'info_date_casted': parse_info_date(values[4]),
             'info_version': int(values[5]) if values[5].isdigit() else values[5]
         }

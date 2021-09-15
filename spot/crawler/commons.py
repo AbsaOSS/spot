@@ -23,8 +23,6 @@ logger = logging.getLogger(__name__)
 
 HDFS_block_size = (128 * 1024 * 1024)
 
-escape_cmd_dates = set('report-date')
-
 size_units = {
     'k': 1024,
     'm': 1024 ** 2,
@@ -121,7 +119,7 @@ def parse_percentage(text):
     return
 
 
-def parse_command_line_args(text, escape_dates=escape_cmd_dates):
+def parse_command_line_args(text):
     """Parses string of command line args into a dict.
     Only basic parsing is supported at the moment.
     Each parameter starting with '--' is transformed into a key,
@@ -140,8 +138,6 @@ def parse_command_line_args(text, escape_dates=escape_cmd_dates):
             # Below we start with space to avoid auto schema inference in Elasticsearch,
             # so that all params are string
             value = ' ' + ''.join(words[1:])
-            if key in escape_dates:  # to avoid value be interpreted as date in elasticsearch
-                value = value + ' ' + key
             result[key] = value
     return result
 
