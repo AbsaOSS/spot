@@ -68,7 +68,7 @@ def datetime_to_utc_timestamp_ms(dt, default_tz=timezone.utc):
     :param default_tz: timezone to assume when a naive (no tz attached) datetime is input
     :return: utc timestamp in microseconds
     """
-    return dt.replace(tzinfo=dt.tzinfo or default_tz).astimezone(timezone.utc).timestamp() * 1000
+    return round(dt.replace(tzinfo=dt.tzinfo or default_tz).astimezone(timezone.utc).timestamp() * 1000)
 
 
 def parse_date(date_str, formats, default_tz=timezone.utc, fail_on_unknown_format=True):

@@ -43,6 +43,9 @@ _remove_keys_dict = {
         'hostPort',
         'executorLogs'
     ],
+    'stage': [
+        'details'
+    ],
     'attempt': [
 #        'sparkUser'
     ],
