@@ -115,7 +115,7 @@ log_level = debug
 # username = user
 # password = changeme
 
-# The default timezone to assume when not provided in datetime stings. The default is UTC when not set.
+# The default timezone to assume when not provided in datetime strings. The default is UTC when not set.
 # For the list of options see:
 # https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
 # default_timezone = Africa/Johannesburg

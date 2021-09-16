@@ -70,7 +70,17 @@ def datetime_to_utc_timestamp_ms(dt, default_tz=timezone.utc):
 
 
 def parse_date(date_str, formats, default_tz=timezone.utc, fail_on_unknown_format=True):
-    """ Try parsing string to date using list of formats"""
+    """Try parsing string to datetime using list of formats.
+    The method try to apply each format from the list and returns the first succeded one.
+
+    :param date_str:  datetime string
+    :param formats: list of formats
+    :param default_tz: the timezone to be used when not specified in the input string
+    :param fail_on_unknown_format: If the input string does not match any of the formats raise a ValueError (True),
+            OR return None (False). Defaults to true
+    :return: datetime object converted to UTC timezone
+    """
+
     for fmt in formats:
         try:
             dt = datetime.strptime(date_str, fmt)
@@ -128,7 +138,7 @@ def parse_command_line_args(text):
     This is done, because Elasticsearch may wrongly interpret some of the values which would result in errors.
 
     :param text: string containing all command line args
-    :return: dictionary {arg_name: ' 'string_value}
+    :return: dictionary {arg_name: string_value}
     """
     result = {}
     for param in text.split('--'):

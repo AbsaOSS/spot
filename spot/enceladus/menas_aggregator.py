@@ -95,7 +95,7 @@ def _match_run(run, app_id, clfsion):
 class MenasAggregator:
 
     def __init__(self, api_base_url, username, password, ssl_path=None, default_tzinfo=tz.tzutc()):
-        logger.debug(f"starting menas aggregator url: {api_base_url} ssl:{ssl_path} default_tzinfo: {default_tzinfo}")
+        logger.debug(f"starting Menas aggregator url: {api_base_url} ssl:{ssl_path} default_tzinfo: {default_tzinfo}")
         self.menas_api = MenasApi(api_base_url, username, password, ssl_path=ssl_path)
         self.default_tzinfo = default_tzinfo
 
@@ -105,11 +105,11 @@ class MenasAggregator:
             if key in _cast_additionalInfo_dict:
                 additional_info[key] = _cast_additionalInfo_dict[key](value) # custom casting for certain fileds
             else:
-                additional_info[key] = cast_string_to_value(value)  # default casting str -> int of float
-            if key in ['conform_cmd_line_args', 'std_cmd_line_args']:  # remove certain arg values
+                additional_info[key] = cast_string_to_value(value)  # default casting str -> int or float
+            if key in ['conform_cmd_line_args', 'std_cmd_line_args']:  # parse command line args
                 cmd_args = additional_info[key]
                 for arg_name in cmd_args:
-                    if arg_name in _remove_cmd_line_args:
+                    if arg_name in _remove_cmd_line_args:  # remove certain arg values
                         cmd_args[arg_name] = 'spot_removed'
 
         start_date_time = parse_date(run.get('startDateTime'), date_formats, default_tz=self.default_tzinfo)
