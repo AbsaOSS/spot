@@ -14,7 +14,7 @@ sleep_seconds = 300
 # again but with an updated completion time. As the result, the Spot crawler may
 # encounter this application multiple times. To avoid repeated processing,
 # the crawler processes only the runs which were completed at least this many seconds ago.
-# The default is 900 seconds.
+# The default is 1800 seconds.
 completion_timeout_seconds = 1800
 
 # When processing a particular run causes an exception
@@ -29,18 +29,19 @@ skip_exceptions = False
 # Data retrieval method
 # There are alternative ways how Spot Crawler identifies and retrieves new applications
 # from Spark History Server API. The currently implemented methods are:
-# - latest: It is based on the assumption that the new apps appear
+#
+# - latest: Based on the assumption that the new apps appear
 #           in the chronological order of their completion
-#            (which is not guaranteed, especially on a loaded cluster).
+#            (which is not guaranteed, especially on cluster under heavy load).
 #           In each iteration the crawler queries History API
-#           for the new apps completed after the latest processed one.
-#           This method is faster, but may lead to some runs being missing.
+#           for new apps that have finished since the last one processed by SPOT.
+#           This method is faster, but may lead to some runs being missed.
 #
 # - all:    At each iteration the crawler goes through the entire retention period
 #           of the Spark History server (lookback_hours) in steps (time_step_seconds), compares
-#           the listed app ids to the ones already stored in the Spot database and processes
-#           the newly appeared applications. Such method is slower as it makes more API calls
-#           in each iteration but more reliable for a heavily loaded cluster.
+#           the listed app ids to the ones already stored in the SPOT database and processes
+#           the new applications. This method is slower as it makes more API calls
+#           for each iteration but is more reliable for cluster under heavy load.
 #           It requires the following additional configurations:
 #                  lookback_hours - retention period of Spark History
 #                  time_step_seconds - time interval which is guaranteed
@@ -53,7 +54,8 @@ time_step_seconds = 3600
 
 # Certain errors are handled by retrying processing attempts after a pause.
 # Currently, such errors include:
-# - wrong state of Spark History server when API calls return wrong format. Resolution requires the server restart.
+# - incorrect state of the Spark History server when API calls return the wrong format.
+#   The resolution requires a restart of the history server.
 retry_sleep_seconds = 900
 retry_attempts = 48
 
@@ -84,17 +86,17 @@ auth_type =
 # spot_[raw/agg/err]_<custom postfix>
 
 # The raw_index stores data as received from external APIs.
-# It is not fully queryable  in elasticsearch and is needed for debugging purposes only.
-# It is recommended NOT to be set in a production configuration, which disables writes to this index.
+# It is not fully queryable in Elasticsearch and is required only for debugging purposes.
+# It is recommended to NOT be set in a production configuration, which disables writes to this index.
 # raw_index = spot_raw_default
 
 # Agg index contains aggregated data for each Spark Application attempt.
-# These data are used in dashboards and analytics. The index is mandatory.
+# It is used in dashboards and analytics. This index is mandatory.
 agg_index = spot_agg_default
 
 # The err_index contains a log of internal Spot exceptions for monitoring and debugging purposes.
 # Such exceptions may be caused by malformed metadata or external services (Spark history, YARN or Menas) being unavailable.
-# The index is mandatory.
+# This index is mandatory.
 err_index = spot_err_default
 
 

@@ -60,7 +60,7 @@ def utc_from_timestamp_ms(timestamp_ms, default_tz=timezone.utc):
 
 
 def datetime_to_utc_timestamp_ms(dt, default_tz=timezone.utc):
-    """Convert datetime object to UTC timestamp in milliseconds
+    """Converts datetime object to UTC timestamp in milliseconds
 
     :param dt: datetime object
     :param default_tz: timezone to assume when a naive (no tz attached) datetime is input
@@ -70,8 +70,8 @@ def datetime_to_utc_timestamp_ms(dt, default_tz=timezone.utc):
 
 
 def parse_date(date_str, formats, default_tz=timezone.utc, fail_on_unknown_format=True):
-    """Try parsing string to datetime using list of formats.
-    The method try to apply each format from the list and returns the first succeded one.
+    """Tries to parse string to datetime using list of formats.
+    The method tries to apply each format from the list and returns the first successful one.
 
     :param date_str:  datetime string
     :param formats: list of formats
@@ -85,7 +85,7 @@ def parse_date(date_str, formats, default_tz=timezone.utc, fail_on_unknown_forma
         try:
             dt = datetime.strptime(date_str, fmt)
             dt = dt.replace(tzinfo=dt.tzinfo or default_tz).astimezone(timezone.utc)
-            logger.debug(f"parsed date string {date_str} AS {dt}")
+            logger.debug(f"Parsed date string {date_str} AS {dt}")
             return dt
         except ValueError:
             pass
@@ -95,24 +95,24 @@ def parse_date(date_str, formats, default_tz=timezone.utc, fail_on_unknown_forma
     return
 
 
-def isint(in_str):
+def is_int(in_str):
     return re.match(r"^[-+]?\d+$", in_str) is not None
 
 
-def isfloat(in_str):
+def is_float(in_str):
     return re.match(r"^[+-]?\d(>?\.\d+)?$", in_str) is not None
 
 
 def cast_to_number(in_str):
-    if isint(in_str):
+    if is_int(in_str):
         return int(in_str)
-    elif isfloat(in_str):
+    elif is_float(in_str):
         return float(in_str)
     return None
 
 
 def parse_percentage(text):
-    """Parse a string representing percentage (e.g. '110.01 %') into a float ratio
+    """Parses a string representing percentage (e.g. '110.01 %') into a float ratio
 
     :param text: percentage as a string ending with ' %'
     :return: float presenting the corresponding ratio. None if the format is wrong
@@ -135,7 +135,7 @@ def parse_command_line_args(text):
     Each parameter starting with '--' is transformed into a key,
     and everything which follows is taken as a string value.
     Each value has a prefix ' ' in order to avoid schema inference in Elasticsearch.
-    This is done, because Elasticsearch may wrongly interpret some of the values which would result in errors.
+    This is done because Elasticsearch may incorrectly interpret some of the values which would result in errors.
 
     :param text: string containing all command line args
     :return: dictionary {arg_name: string_value}

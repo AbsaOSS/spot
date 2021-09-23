@@ -198,12 +198,12 @@ class Elastic:
         return max_end_time, id_set
 
     def get_processed_ids(self, end_time_min, end_time_max, size=10000):
-        """Query for id's of all apps stored in aggregations
+        """Queries for ids of all apps stored in aggregations
         which completed from end_time_min to end_time_max.
-        It is needed to compare against app id's from Spark History
+        It is needed to compare against app ids from Spark History
         in order to skip runs processed in the previous iteration
 
-        end_time_min -- minimum complition time of an app
+        end_time_min -- minimum completion time of an app
         end_time_max -- maximum completion time of an app
         size -- max number of ids to request"""
 

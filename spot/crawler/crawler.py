@@ -210,12 +210,11 @@ class Crawler:
                 if self.retry_attempts_remained > 0:
                     # wait and retry
                     logger.warning(f" Will retry in {self.retry_sleep_seconds} s. "
-                                   f"{self.retry_attempts_remained} retries remained")
+                                   f"{self.retry_attempts_remained} retries remaining")
                     time.sleep(self.retry_sleep_seconds)
                     self.retry_attempts_remained -= 1
                     return self._get_next_completed_app(min_end_date=min_end_date, max_end_date=max_end_date)
                 else:
-                    # no retry attempts left
                     logger.error("No retry attempts left")
                     raise e
 
@@ -224,12 +223,12 @@ class Crawler:
 
     def process_runs_within_time_step(self, start_time, finish_time):
         """Processes new runs completed within the given time step.
-        First, get from the database a list of ids of already processed runs which were completed within the time step.
-        Second, get the list of all runs completed within the time step from Spark history.
+        First, gets a list of ids from the database of already processed runs which completed within the time step.
+        Second, gets the list of all runs completed within the time step from Spark history.
         Finally, iterates over the list from Spark History,
         checks whether each id already exists in the list from the database
         and, if not, processes the run.
-        Such approach is necessary, as the completed runs does not always appear in chronological order.
+        This approach is necessary as the completed runs do not always appear in chronological order.
         The time step should be selected in such a way that it does not contain more than 10,000 jobs.
         :param start_time: start time of the time step
         :param finish_time: end time of the time step
@@ -267,7 +266,7 @@ class Crawler:
         return new_counter
 
     def process_window_by_steps(self, window_start, window_end):
-        """Process new runs which completed within the larger time window and do not present in the database yet.
+        """Process new runs which completed within the larger time window and are not yet present in the database.
         The time window can be large (e.g. retention period of the Spark History)
         as it is sliced into smaller time steps which are processed iteratively.
         Previously processed runs are identified by id and skipped.
@@ -276,7 +275,7 @@ class Crawler:
         :return: number of new apps processed
         """
         if not window_start < window_end:
-            logger.warning(f"time window error. window_start: {window_start}, window_end: {window_end}" )
+            logger.warning(f"Time window error. window_start: {window_start}, window_end: {window_end}" )
             return 0
 
         delta = timedelta(seconds=self.time_step_seconds)
@@ -299,12 +298,12 @@ class Crawler:
         return new_counter
 
     def process_all_new_runs(self):
-        """Process all new runs from Spark History server.
+        """Processes all new runs from Spark History server.
         The method processes completion time interval from lookback_hours to (time_now - lookback_delta).
         The interval is split into steps.
-        The list of jobs completed within each time step is pulled from both Spark History and database and compared.
-        The new runs from Spark History, which are not present in the database are then further processed and stored.
-        This method provides more reliable retrieval of data from Spark History (especially for loaded clusters)
+        The list of jobs completed within each time step is pulled from both Spark History and database, then compared.
+        The new runs from Spark History which are not present in the database are then processed further and stored.
+        This method provides more reliable retrieval of data from Spark History (especially for clusters under heavy load)
         but makes more API calls to both the database and the History server.
 
         :return: number of new processed runs
@@ -326,9 +325,9 @@ class Crawler:
         The _latest_seen_date is either set upon class initialization,
         stored from the previous call of the method
         or pulled from the database of previously processed runs.
-        This method provides faster processing but based on the assumption that the new runs appear in
+        This method provides faster processing but is based on the assumption that the new runs appear in
         Spark History strictly in the order of their completion, which is not necessarily true,
-        especially for heavily loaded clusters.
+        especially for clusters under heavy load.
 
         :return: list of new runs
         """

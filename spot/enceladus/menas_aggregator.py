@@ -249,7 +249,7 @@ class MenasAggregator:
         return new_checkpoints
 
     def post_aggregate(self, agg):
-        """ Process aggregations of Enceladus runs.
+        """ Processes aggregations of Enceladus runs.
         This method is called on each aggregation after enrich(app), aggregate(app) and flatten(app).
         """
         post_aggregations = {}
