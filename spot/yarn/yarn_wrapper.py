@@ -13,10 +13,10 @@
 
 import logging
 from pprint import pprint
-from datetime import datetime
+from datetime import datetime, timezone
 
 
-from spot.crawler.commons import default_enrich
+from spot.crawler.commons import default_enrich, datetime_to_utc_timestamp_ms, utc_from_timestamp_ms
 from spot.enceladus.classification import get_classification, is_enceladus_app, get_tag
 import spot.yarn.yarn_api as yarn_api
 from urllib.parse import urlparse
@@ -36,20 +36,12 @@ _time_keys_dict = {
 _default_apptypes = ['all', 'SPARK', 'MAPREDUCE']
 
 
-def datetime_to_timestamp_ms(dt):
-    return round(dt.timestamp()* 1000)
-
-
-def timestamp_ms_to_datetime(ts):
-    return datetime.fromtimestamp(ts / 1000.0)
-
-
 def _cast_timestamps(doc, doc_type):
     key_list = _time_keys_dict.get(doc_type)
     if (doc is not None) and (key_list is not None):
         for key in key_list:
             if key in doc:
-                doc[key] = timestamp_ms_to_datetime(doc.get(key))
+                doc[key] = utc_from_timestamp_ms(doc.get(key))
     return doc
 
 
@@ -70,7 +62,7 @@ class YarnWrapper:
 
     def _add_spot_meta(self, doc):
         doc['spot'] = {
-            'time_processed': datetime.utcnow(),
+            'time_processed': datetime.now(tz=timezone.utc),
             'yarn_host': self._host
         }
         return doc
@@ -107,10 +99,10 @@ class YarnWrapper:
                  deSelects=None
                  ):
 
-        stb = None if startedTimeBegin is None else datetime_to_timestamp_ms(startedTimeBegin)
-        ste = None if startedTimeEnd is None else datetime_to_timestamp_ms(startedTimeEnd)
-        ftb = None if finishedTimeBegin is None else datetime_to_timestamp_ms(finishedTimeBegin)
-        fte = None if finishedTimeEnd is None else datetime_to_timestamp_ms(finishedTimeEnd)
+        stb = None if startedTimeBegin is None else datetime_to_utc_timestamp_ms(startedTimeBegin)
+        ste = None if startedTimeEnd is None else datetime_to_utc_timestamp_ms(startedTimeEnd)
+        ftb = None if finishedTimeBegin is None else datetime_to_utc_timestamp_ms(finishedTimeBegin)
+        fte = None if finishedTimeEnd is None else datetime_to_utc_timestamp_ms(finishedTimeEnd)
 
         res = self._api.get_apps(states=states,
                                  finalStatus=finalStatus,

@@ -13,12 +13,9 @@
 
 import pandas as pd
 import numpy as np
-
 import logging
 
-from spot.crawler.elastic import Elastic
-from spot.utils.config import SpotConfig
-from spot.crawler.commons import get_last_attempt, bytes_to_hdfs_block, parse_to_bytes, bytes_to_gb
+from spot.crawler.commons import get_last_attempt, bytes_to_hdfs_block, bytes_to_gb
 
 import spot.utils.setup_logger
 
@@ -54,9 +51,13 @@ def rsd(series):
 # This dictionary defines which aggregations are applied to each column type
 # see https://pandas.pydata.org/pandas-docs/stable/reference/series.html
 default_type_aggregations = {
-    np.number: [DF.min, DF.max, DF.sum, DF.mean, DF.std, DF.nunique, count_zeroes, count_not_null, rsd],
-    np.object: [count_not_null, pd.Series.nunique, concat_unique_values], # corresponds to string type
-    np.datetime64: [min, max],
+    np.number: [DF.min, DF.max, DF.sum, DF.mean, DF.nunique, count_zeroes, count_not_null],  # other possible:  DF.std, rsd
+    np.object: [count_not_null, pd.Series.nunique, concat_unique_values],  # corresponds to string type
+    np.datetime64: [min, max],  # without timezone. Does not overlap with timezone aware columns
+    'datetime64[ns, UTC]': [min, max],  # with ANY timezone (not limited to UTC). Preserves original column timezone.
+                                        # WARNING: Column must have a single timezone.
+                                        # If different timezones are in the same column
+                                        # pandas does not recognize it as a datetime at all and uses 'object' instead
     bool: [DF.any, DF.all, DF.sum]
 }
 
@@ -73,10 +74,10 @@ def aggregate_by_col_type(df, type_aggregations=default_type_aggregations):
     if n == 0:
         return result
     # apply aggregations to columns of different types
-    for t, aggs in type_aggregations.items(): # t - column type, aggs - aggregations
+    for t, aggs in type_aggregations.items():  # t - column type, aggs - aggregations
         # select subset of columns of type t
         subset = df.select_dtypes([t])
-        if len(subset.columns) ==0: # if no columns of selected type
+        if len(subset.columns) == 0:  # if no columns of selected type
             continue
         # apply aggregations for the given type
         res1 = subset.agg(aggs)
@@ -329,7 +330,4 @@ def calculate_summary(attempt, aggs):
             summary['storage_memory_usage'] = storage_memory_usage
             unused_storage_memory_bytes = aggs['allexecutors']['executors']['maxMemory']['sum'] - est_peak_memory_usage
             summary['x_unused_storage_memory_bytes'] = unused_storage_memory_bytes
-
-
-
     return summary

@@ -12,7 +12,7 @@
 # limitations under the License.
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 import time
 from urllib.parse import urlparse
 
@@ -39,7 +39,7 @@ def main():
             f"Failed to process {stage_name}: {error_msg}")
         err = {
             'spot': {
-                'time_processed': datetime.now(),
+                'time_processed': datetime.now(tz=timezone.utc),
                 'yarn_host': host,
                 'error': {
                     'type': e.__class__.__name__,

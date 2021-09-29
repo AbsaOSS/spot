@@ -13,8 +13,6 @@
 
 import logging
 import requests
-from pprint import pprint
-import datetime
 
 import spot.utils.setup_logger
 

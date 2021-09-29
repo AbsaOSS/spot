@@ -12,7 +12,7 @@
 # limitations under the License.
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 import spot.crawler.history_api as history_api
 from spot.crawler.commons import get_last_attempt, parse_to_bytes, parse_to_bytes_default_MiB, parse_to_bytes_default_KiB,\
@@ -42,6 +42,9 @@ _remove_keys_dict = {
     'executor': [
         'hostPort',
         'executorLogs'
+    ],
+    'stage': [
+        'details'
     ],
     'attempt': [
 #        'sparkUser'
@@ -88,6 +91,9 @@ _cast_sparkProperties_dict = {
     'spark_dynamicAllocation_maxExecutors': int,
     'spark_dynamicAllocation_minExecutors': int,
     'spark_yarn_maxAppAttempts': int,
+    'spark_yarn_containerLauncherMaxThreads': int,
+    'spark_yarn_submit_file_replication' : int,
+
 
     'spark_dynamicAllocation_executorAllocationRatio': float,
     'spark_memory_fraction': float,
@@ -104,6 +110,8 @@ _cast_sparkProperties_dict = {
     'spark_sql_hive_convertMetastoreParquet': string_to_bool,
     'spark_sql_parquet_writeLegacyFormat': string_to_bool,
     'spark_history_kerberos_enabled': string_to_bool,
+    'spark_yarn_preserve_staging_files': string_to_bool,
+    'spark_yarn_submit_waitAppCompletion': string_to_bool,
 
     'spark_driver_memory': parse_to_bytes,
     'spark_executor_memory': parse_to_bytes,
@@ -117,6 +125,7 @@ _cast_sparkProperties_dict = {
     'spark_executor_memoryOverhead': parse_to_bytes_default_MiB,
     'spark_yarn_driver_memoryOverhead': parse_to_bytes_default_MiB,
     'spark_yarn_executor_memoryOverhead': parse_to_bytes_default_MiB,
+    'spark_yarn_am_memoryOverhead': parse_to_bytes_default_MiB,
     'spark_executor_pyspark_memory': parse_to_bytes_default_MiB,
     'spark_reducer_maxSizeInFlight': parse_to_bytes_default_MiB,
     'spark_kryoserializer_buffer_max': parse_to_bytes_default_MiB,
@@ -132,26 +141,32 @@ _cast_sparkProperties_dict = {
     'spark_sql_broadcastTimeout': parse_to_ms,
     'spark_executor_heartbeatInterval': parse_to_ms,
     'spark_sql_broadcastTimeout': parse_to_ms,
+    'spark_dynamicAllocation_executorIdleTimeout': parse_to_ms,
+    'spark_network_timeout': parse_to_ms,
+    'spark_yarn_scheduler_heartbeat_interval-ms': parse_to_ms
 }
 
-_dt_format = "%Y-%m-%dT%H:%M:%S.%f%Z"
+_dt_format = "%Y-%m-%dT%H:%M:%S.%fGMT"
+
+
+def _parse_datetime(str_datetime, format=_dt_format):
+    return datetime.strptime(str_datetime, format).replace(tzinfo=timezone.utc)
 
 
 class HistoryAggregator:
 
     def __init__(self,
                  spark_history_base_url,
+                 ssl_path=None,
                  remove_keys_dict=_remove_keys_dict,
                  time_keys_dict=_time_keys_dict,
-                 cast_sparkProperties_dict = _cast_sparkProperties_dict,
-                 dt_format=_dt_format,
+                 cast_sparkProperties_dict=_cast_sparkProperties_dict,
                  last_attempt_only=False):
-        logger.debug('Initialized hist aggregator')
-        self._hist = history_api.SparkHistory(spark_history_base_url)
+        logger.debug(f"Initializing hist aggregator. base URL: {spark_history_base_url} cert: {ssl_path}")
+        self._hist = history_api.SparkHistory(spark_history_base_url, ssl_path=ssl_path)
         self._remove_keys_dict = remove_keys_dict
         self._time_keys_dict = time_keys_dict
         self.cast_sparkProperties_dict = cast_sparkProperties_dict
-        self._dt_format = dt_format
         self.last_attempt_only = last_attempt_only
 
     def _remove_keys(self, doc, doc_type):
@@ -166,7 +181,7 @@ class HistoryAggregator:
         if (doc is not None) and (key_list is not None):
             for key in key_list:
                 if key in doc:
-                    doc[key] = datetime.strptime(doc.get(key), self._dt_format)
+                    doc[key] = _parse_datetime(doc.get(key))
         return doc
 
     # for sending API requests
@@ -175,7 +190,7 @@ class HistoryAggregator:
         if dt is not None:
             # Spark hist cannot understand microseconds
             # It needs format 2020-01-15T14:59:33.707GMT
-            return dt.isoformat(sep='T', timespec='milliseconds') + 'GMT'
+            return dt.astimezone(tz=timezone.utc).replace(tzinfo=None).isoformat(sep='T', timespec='milliseconds') + 'GMT'
         return None
 
     def _process_sparkProperties(self, alist):
@@ -242,7 +257,6 @@ class HistoryAggregator:
                                            apps_limit=apps_limit)
         logger.debug(f'{len(apps)} apps found')
 
-        # we assume the app are returned in reverses chronological order
         for app in reversed(apps):
             yield self._process_app(app)
 

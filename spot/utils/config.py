@@ -58,6 +58,10 @@ class SpotConfig(Config):
         return self.get_property('SPARK_HISTORY', 'api_base_url')
 
     @property
+    def history_ssl_path(self):
+        return self.get_property('SPARK_HISTORY', 'ssl_path')
+
+    @property
     def crawler_sleep_seconds(self):
         str_val = self.get_property('CRAWLER', 'sleep_seconds')
         if str_val.isdigit():
@@ -72,10 +76,45 @@ class SpotConfig(Config):
         return 300
 
     @property
+    def crawler_method(self):
+        crawler_method = self.get_property('CRAWLER', 'crawler_method')
+        if crawler_method is None:
+            crawler_method = 'all'
+        return crawler_method
+
+    @property
+    def lookback_hours(self):
+        str_val = self.get_property('CRAWLER', 'lookback_hours')
+        if str_val.isdigit():
+            return int(str_val)
+        return 24
+
+    @property
+    def time_step_seconds(self):
+        str_val = self.get_property('CRAWLER', 'time_step_seconds')
+        if str_val.isdigit():
+            return int(str_val)
+        return 3600
+
+    @property
     def crawler_skip_exceptions(self):
         if self.get_boolean('CRAWLER', 'skip_exceptions'):
             return True
         return False
+
+    @property
+    def retry_sleep_seconds(self):
+        str_val = self.get_property('CRAWLER', 'retry_sleep_seconds')
+        if str_val.isdigit():
+            return int(str_val)
+        return 900
+
+    @property
+    def retry_attempts(self):
+        str_val = self.get_property('CRAWLER', 'retry_attempts')
+        if str_val.isdigit():
+            return int(str_val)
+        return 10
 
     @property
     def elasticsearch_url(self):
@@ -176,6 +215,10 @@ class SpotConfig(Config):
     @property
     def menas_password(self):
         return self.get_property('MENAS', 'password')
+
+    @property
+    def menas_default_timezone(self):
+        return self.get_property('MENAS', 'default_timezone')
 
 
     @property

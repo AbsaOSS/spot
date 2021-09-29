@@ -12,7 +12,7 @@
 # limitations under the License.
 
 import math
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 import re
 
@@ -48,18 +48,108 @@ time_units = {
     'd': 24 * 60 * 60 * 1000
 }
 
-date_formats = ["%d-%m-%Y %H:%M:%S %z", "%d-%m-%Y %H:%M:%S"]
+
+def utc_from_timestamp_ms(timestamp_ms, default_tz=timezone.utc):
+    """Converts timestamp in milliseconds to python datetime with timezone
+
+    :param timestamp_ms: milliseconds since epoch
+    :param default_tz: timezone to be applied
+    :return: timezone aware datetime
+    """
+    return datetime.fromtimestamp(timestamp_ms / 1000.0, tz=default_tz)
 
 
-def parse_date(text, formats=date_formats):
-    """ Try parsing string to date using list of formats"""
+def datetime_to_utc_timestamp_ms(dt, default_tz=timezone.utc):
+    """Converts datetime object to UTC timestamp in milliseconds
+
+    :param dt: datetime object
+    :param default_tz: timezone to assume when a naive (no tz attached) datetime is input
+    :return: utc timestamp in microseconds
+    """
+    return round(dt.replace(tzinfo=dt.tzinfo or default_tz).astimezone(timezone.utc).timestamp() * 1000)
+
+
+def parse_date(date_str, formats, default_tz=timezone.utc, fail_on_unknown_format=True):
+    """Tries to parse string to datetime using list of formats.
+    The method tries to apply each format from the list and returns the first successful one.
+
+    :param date_str:  datetime string
+    :param formats: list of formats
+    :param default_tz: the timezone to be used when not specified in the input string
+    :param fail_on_unknown_format: If the input string does not match any of the formats raise a ValueError (True),
+            OR return None (False). Defaults to true
+    :return: datetime object converted to UTC timezone
+    """
+
     for fmt in formats:
         try:
-            return datetime.strptime(text, fmt)
+            dt = datetime.strptime(date_str, fmt)
+            dt = dt.replace(tzinfo=dt.tzinfo or default_tz).astimezone(timezone.utc)
+            logger.debug(f"Parsed date string {date_str} AS {dt}")
+            return dt
         except ValueError:
             pass
-    logger.warning(f"No valid date format found for {text}")
+    if fail_on_unknown_format:
+        raise ValueError(f"Failed to parse date string: {date_str} using formats: {formats}")
+    logger.warning(f"Failed to parse date string: {date_str} using formats: {formats}")
     return
+
+
+def is_int(in_str):
+    return re.match(r"^[-+]?\d+$", in_str) is not None
+
+
+def is_float(in_str):
+    return re.match(r"^[+-]?\d(>?\.\d+)?$", in_str) is not None
+
+
+def cast_to_number(in_str):
+    if is_int(in_str):
+        return int(in_str)
+    elif is_float(in_str):
+        return float(in_str)
+    return None
+
+
+def parse_percentage(text):
+    """Parses a string representing percentage (e.g. '110.01 %') into a float ratio
+
+    :param text: percentage as a string ending with ' %'
+    :return: float presenting the corresponding ratio. None if the format is wrong
+    """
+    if text.endswith(' %'):
+        str_val = text[:-2]
+        try:
+            percent = float(str_val)
+            ratio = percent / 100.0
+            return ratio
+        except ValueError:
+            logger.warning(f"Failed to parse percentage string to a float ratio: {str_val}")
+            return
+    return
+
+
+def parse_command_line_args(text):
+    """Parses string of command line args into a dict.
+    Only basic parsing is supported at the moment.
+    Each parameter starting with '--' is transformed into a key,
+    and everything which follows is taken as a string value.
+    Each value has a prefix ' ' in order to avoid schema inference in Elasticsearch.
+    This is done because Elasticsearch may incorrectly interpret some of the values which would result in errors.
+
+    :param text: string containing all command line args
+    :return: dictionary {arg_name: string_value}
+    """
+    result = {}
+    for param in text.split('--'):
+        if param != '':
+            words = param.strip(' ').split(' ')
+            key = words[0]
+            # Below we start with space to avoid auto schema inference in Elasticsearch,
+            # so that all params are string
+            value = ' ' + ''.join(words[1:])
+            result[key] = value
+    return result
 
 
 def get_last_attempt(app):
@@ -81,11 +171,11 @@ def parse_to_bytes(size_str, default_multiplier=1):
             stripped = stripped[:-len(unit)]
             multiplier = size_units[unit]
             break
-    if stripped.isdigit():
-        return int(stripped) * multiplier
-    else:
-        logger.warning(f'Failed to parse string {size_str} to bytes')
-        return None
+    as_number = cast_to_number(stripped)
+    if as_number is not None:
+        return as_number * multiplier
+    logger.warning(f'Failed to parse string {size_str} to bytes')
+    return
 
 
 # 1 MiB = 1024 * 1024 bytes = 1048576 bytes
@@ -109,11 +199,12 @@ def parse_to_ms(time_str):
             stripped = stripped[:-len(unit)]
             multiplier = time_units[unit]
             break
-    if stripped.isdigit():
-        return int(stripped) * multiplier
-    else:
-        logger.warning(f'Failed to parse string {time_str} to milliseconds')
-        return
+    as_number = cast_to_number(stripped)
+    if as_number is not None:
+        return as_number * multiplier
+
+    logger.warning(f'Failed to parse string {time_str} to milliseconds')
+    return
 
 
 def sizeof_fmt(num, suffix='B'):
@@ -125,11 +216,9 @@ def sizeof_fmt(num, suffix='B'):
 
 
 def cast_string_to_value(str_val):
-    if str_val.isdigit():
-        try:
-            return int(str_val)
-        except ValueError:
-            return float(str_val)
+    as_number = cast_to_number(str_val)
+    if as_number is not None:
+        return as_number
     return str_val
 
 
