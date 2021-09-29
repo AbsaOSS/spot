@@ -24,7 +24,7 @@ def is_enceladus_app(name):
 def parse_info_date(info_date_str):
     """Parses Enceladus info_date string to datetime, where time is set to 12:00 UTC.
     This time is selected in order to minimize the chance of date change upon timezone transformations.
-    This is due to the date type (w/o time) is supported in Elasticsearch with rigid mappings only
+    This is due to the date type (w/o time) being supported in Elasticsearch with rigid mappings only
     and not supported in Kibana.
 
     :param info_date_str:
