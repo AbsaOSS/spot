@@ -41,7 +41,7 @@ skip_exceptions = False
 #           of the Spark History server (lookback_hours) in steps (time_step_seconds), compares
 #           the listed app ids to the ones already stored in the SPOT database and processes
 #           the new applications. This method is slower as it makes more API calls
-#           for each iteration but is more reliable for cluster under heavy load.
+#           for each iteration but is more reliable for a cluster under heavy load.
 #           It requires the following additional configurations:
 #                  lookback_hours - retention period of Spark History
 #                  time_step_seconds - time interval which is guaranteed
