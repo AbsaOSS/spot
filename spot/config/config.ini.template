@@ -87,7 +87,7 @@ auth_type =
 
 # The raw_index stores data as received from external APIs.
 # It is not fully queryable in Elasticsearch and is required only for debugging purposes.
-# It is recommended to NOT be set in a production configuration, which disables writes to this index.
+# It is recommended to leave this unset in a production configuration, which disables writes to this index.
 # raw_index = spot_raw_default
 
 # Agg index contains aggregated data for each Spark Application attempt.
