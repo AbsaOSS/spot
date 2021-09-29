@@ -266,7 +266,7 @@ class Crawler:
         return new_counter
 
     def process_window_by_steps(self, window_start, window_end):
-        """Process new runs which completed within the larger time window and are not yet present in the database.
+        """Processes new runs which completed within the larger time window and are not yet present in the database.
         The time window can be large (e.g. retention period of the Spark History)
         as it is sliced into smaller time steps which are processed iteratively.
         Previously processed runs are identified by id and skipped.
