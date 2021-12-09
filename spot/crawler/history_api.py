@@ -53,15 +53,7 @@ class SparkHistory:
 
         if response.status_code != requests.codes.ok:
             response.raise_for_status()
-        try:  # REMOVE !!!!
-            return response.json()
-        except Exception as e:
-            logger.error(f"\n ERROR AT GET DATA:\n "
-                         f"url: {url}\n"
-                         f"error:{e}\n"
-                         f"response:{response}\n")
-
-            raise e
+        return response.json()
 
     def get_app_attempts(self,
                          status=None,
