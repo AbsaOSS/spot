@@ -4,7 +4,7 @@ api_base_url = http://localhost:18080/api/v1
 
 [CRAWLER]
 # Time between pulling of new completed runs from Spark History
-sleep_seconds = 300
+sleep_seconds = 10
 
 # When YARN is used as Spark master, if a run attempt fails it might be
 # restarted with the same app id but a new attempt id.
@@ -107,7 +107,6 @@ limit_of_fields_increment = 100
 
 [MISC]
 output_dir = output
-log_level = debug
 
 [MENAS]
 # Menas provides additional metadata for Enceladus jobs (OPTIONAL)
