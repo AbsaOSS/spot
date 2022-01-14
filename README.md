@@ -1,4 +1,4 @@
-![Spot logo](https://user-images.githubusercontent.com/8556576/88801204-9d7b4080-d1a9-11ea-9dcb-d704be2292cf.png)
+![Spot logo](https://user-images.githubusercontent.com/8556576/149575510-48f57d83-a482-454a-bb14-709bfa7e6fb1.png)
 
 <!-- toc -->
 - [What is Spot?](#what-is-spot)
@@ -15,7 +15,7 @@
 Spot is a set of tools for monitoring and performance tuning of [Spark](https://github.com/apache/spark) applications.
 The main idea is to continuously apply statistical analysis on repeating (production) runs of the same applications.
 This enables comparison of target metrics (e.g. time, cluster load, cloud cost) between different code versions and configurations.
-Furthermore, ML models and optimization techniques can be applied to configure new application runs automatically.
+Furthermore, ML models and optimization techniques can be applied to configure new application runs automatically [Future].
 
 One of the primary use cases considered is ETL (Extract Transform Load) in batch mode.
 [Enceladus](https://github.com/AbsaOSS/enceladus) is an example of one such projects. Such an application runs repeatedly
@@ -36,6 +36,7 @@ Spot consists of the following modules:
 | Enceladus      |The Enceladus module provides integration capabilities for Spot usage with [Enceladus](https://github.com/AbsaOSS/enceladus).|
 | Yarn           | The module contains its own crawler which provides data collection from [YARN](https://hadoop.apache.org/docs/current/hadoop-yarn/hadoop-yarn-site/YARN.html) API. The data can be visualized with provided Kibana dashboards. (Future) The YARN data is merged with data from other sources (Spark, Enceladus) for a more complete analyses.|
 | Kibana         | A collection of Kibana dashboards and alerts which provide visualization and monitoring for the Spot data. |
+
 A detailed description of each module can be found in section [Modules](#modules).
 
 The diagram below shows current Spot architecture.
