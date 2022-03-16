@@ -1,5 +1,5 @@
 requests >= 2.22.0
-elasticsearch == 7.5.1
+elasticsearch == 7.13.4
 pandas >= 0.25.0
 numpy >= 1.17.0
 boto3 >= 1.17.3

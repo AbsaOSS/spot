@@ -121,7 +121,7 @@ class Elastic:
             # increase the limit and retry
             if err_type == 'illegal_argument_exception' and err_msg.startswith('Limit of total fields'):
                 item_fields = num_elements(item)
-                substr = re.search("^(Limit of total fields \[)\d+(\] in index)", err_msg).group()
+                substr = re.search("^(Limit of total fields \[)\d+(\])", err_msg).group()
                 current_limit_of_fileds = int(re.search("\d+",substr).group())
                 new_limit_of_fields = max(item_fields, current_limit_of_fileds + self._limit_of_fields_increment)
 
