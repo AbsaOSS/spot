@@ -43,6 +43,7 @@ class Elastic:
                                                timeout=REQUEST_TIMEOUT,
                                                retry_on_timeout=True,
                                                http_auth=http_auth,
+                                               verify_certs=False,
                                                connection_class=elasticsearch.RequestsHttpConnection)
         # Spark indexes
         self._raw_index = self._conf.elastic_raw_index
@@ -288,7 +289,7 @@ class Elastic:
             item['_id'] = app.get('id')
             item['_index'] = self._yarn_apps_index
             item['_op_type'] = 'index'
-            item['_type'] = '_doc'
+            #item['_type'] = '_doc'
             item['_source'] = app
             yield item
 
@@ -300,7 +301,7 @@ class Elastic:
             item = dict()
             item['_index'] = self._yarn_scheduler_index
             item['_op_type'] = 'create'
-            item['_type'] = '_doc'
+            #item['_type'] = '_doc'
             item['_source'] = doc
             yield item
 

@@ -52,7 +52,7 @@ def rsd(series):
 # see https://pandas.pydata.org/pandas-docs/stable/reference/series.html
 default_type_aggregations = {
     np.number: [DF.min, DF.max, DF.sum, DF.mean, DF.nunique, count_zeroes, count_not_null],  # other possible:  DF.std, rsd
-    np.object: [count_not_null, pd.Series.nunique, concat_unique_values],  # corresponds to string type
+    #np.object: [count_not_null, pd.Series.nunique, concat_unique_values],  # corresponds to string type
     np.datetime64: [min, max],  # without timezone. Does not overlap with timezone aware columns
     'datetime64[ns, UTC]': [min, max],  # with ANY timezone (not limited to UTC). Preserves original column timezone.
                                         # WARNING: Column must have a single timezone.

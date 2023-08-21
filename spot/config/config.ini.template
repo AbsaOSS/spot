@@ -60,7 +60,7 @@ retry_sleep_seconds = 900
 retry_attempts = 48
 
 [SPOT_ELASTICSEARCH]
-elasticsearch_url = https://localhost:9200
+elasticsearch_url = http://localhost:9200
 
 
 # The following authentication types for Elasticsearch are currently supported:
