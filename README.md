@@ -139,9 +139,9 @@ Elasticsearch collection. Aggregations for each document are stored in a separat
 collection. The aggregations are performed in the following way: custom aggregations
 (e.g. min, max, mean, non-zero) are calculated for each value (e.g. completed tasks)
 across elements of each array in the original raw document (e.g. executors). Custom
-calculated values are added, e.g. total CPU allocation, estimated efficiency and speedup. 
-Some of the records can be inconsistent due to external services (e.g Spark History Server error) 
-and raise exceptions during processing. Such exceptions are handled and corresponding records 
+calculated values are added, e.g. total CPU allocation, estimated efficiency and speedup.
+Some of the records can be inconsistent due to external services (e.g Spark History Server error)
+and raise exceptions during processing. Such exceptions are handled and corresponding records
 are stored in a separate collection along with error messages.
 
 
@@ -160,32 +160,32 @@ The module contains its own crawler which provides data collection from [YARN](h
 
 
 ### Kibana
-A collection of Kibana dashboards and alerts which provide visualization and monitoring for the Spot data. 
+A collection of Kibana dashboards and alerts which provide visualization and monitoring for the Spot data.
 
 ## Deployment
-- Install Python 3 (recommended 3.7 and later)
-- Install required modules (see requirements.txt)
+- Install Python **3.7.16**
 - Clone code to a location of your choice
+- Install required modules (see requirements.txt) `pip3 install --user -r requirements.txt`
 - Add project root directory to PYTHONPATH e.g. `export PYTHONPATH="${PYTHONPATH}:/path/to/spot"` if PYTHONPATH is already defined, otherwise `export PYTHONPATH="$(which python3):/path/to/spot"`
 - Check access to external services:
-    - Elasticsearch and Kibana
+    - Elasticsearch and Kibana (OR OpenSearch and OpenSearch Dashboards)
     - Spark History (2.4 and later recommended)
     - (Optional) [Menas](https://github.com/AbsaOSS/enceladus) (2.1.0 and later recommended) Requires username and password
     - (Optional) [YARN](https://hadoop.apache.org/docs/current/hadoop-yarn/hadoop-yarn-site/YARN.html)
 - Create configuration: in /spot/config copy config.ini.template to config.ini and set parameters from the above step
-    - For a new deployment set new index names which do not exist in elasticsearch. 
-    In order to be compatible with the provided [Kibana objects](spot/kibana/) the indexes should match the following patterns:  
-    (optional) raw_index=spot\_raw\_\<cluster_name\>\_\<id\>  
-    agg_index=spot\_agg\_\<cluster_name\>\_\<id\>  
-    err_index=spot\_err\_\<cluster_name\>\_\<id\>  
+    - For a new deployment set new index names which do not exist in elasticsearch.
+    In order to be compatible with the provided [Kibana objects](spot/kibana/) the indexes should match the following patterns:
+    (optional) raw_index=spot\_raw\_\<cluster_name\>\_\<id\>
+    agg_index=spot\_agg\_\<cluster_name\>\_\<id\>
+    err_index=spot\_err\_\<cluster_name\>\_\<id\>
 - Configure logging: in /spot/config copy logging_confg.template to logging_confg.ini and adjust the parameters (see [Logging](https://docs.python.org/2/library/logging.config.html#configuration-file-format))
 
 ### Multicluster configuration
-It is possible to monitor multiple clusters (each with its own Spark History server) with Spot. 
-For this scenario a separate Spot crawler process needs to be running for each Spark History server (and optionally Menas). 
-Each process writes to its own set of indexes within the same elasticsearch instance. 
-If the index names follow the defined pattern (spot\_\<raw/agg/err\>\_\<cluster_name\>\_\<id\>) 
-the data can be visualized in Kibana using the setup provided in [Kibana directory](spot/kibana/). 
+It is possible to monitor multiple clusters (each with its own Spark History server) with Spot.
+For this scenario a separate Spot crawler process needs to be running for each Spark History server (and optionally Menas).
+Each process writes to its own set of indexes within the same elasticsearch instance.
+If the index names follow the defined pattern (spot\_\<raw/agg/err\>\_\<cluster_name\>\_\<id\>)
+the data can be visualized in Kibana using the setup provided in [Kibana directory](spot/kibana/).
 There the data can be filtered by history_host.keyword if required.
 
 ### Run Crawler
@@ -201,24 +201,24 @@ This will start the main loop of the crawler. It gets new completed apps, proces
 
 
 ### Import Kibana Demo Dashboard
-[Kibana directory](spot/kibana/) contains objects which can be 
-[imported to Kibana](https://www.elastic.co/guide/en/kibana/current/managing-saved-objects.html#:~:text=Importedit,already%20in%20Kibana%20are%20overwritten.). 
+[Kibana directory](spot/kibana/) contains objects which can be
+[imported to Kibana](https://www.elastic.co/guide/en/kibana/current/managing-saved-objects.html#:~:text=Importedit,already%20in%20Kibana%20are%20overwritten.).
 For example, there is a [demo dashboard](spot/kibana/dashboards/spot_demo.ndjson) demonstrating basic statistics of Spark applications.
 
 ### Configure Alerts
-To trigger an [alert in Kibana](https://www.elastic.co/guide/en/kibana/master/alerting-getting-started.html)  
-when a critical error occurs in Spot (e.g. Spark History server is in an incorrect state) 
+To trigger an [alert in Kibana](https://www.elastic.co/guide/en/kibana/master/alerting-getting-started.html)
+when a critical error occurs in Spot (e.g. Spark History server is in an incorrect state)
 the [example queries](spot/kibana/alerting/internal_errors/spot_severe_internal_errors.txt) can be used.
 
 The Kibana alerts can be configured to [use an AWS SNS topic as a destination](https://aws.amazon.com/blogs/big-data/setting-alerts-in-amazon-elasticsearch-service/), which can then be configured to send notifications via email, etc.
- In addition, an [encrypted SNS topic](https://aws.amazon.com/blogs/compute/encrypting-messages-published-to-amazon-sns-with-aws-kms/) can be used (recommended) 
- which requires additional configuration of an IAM role, as documented in the referenced tutorial. 
+ In addition, an [encrypted SNS topic](https://aws.amazon.com/blogs/compute/encrypting-messages-published-to-amazon-sns-with-aws-kms/) can be used (recommended)
+ which requires additional configuration of an IAM role, as documented in the referenced tutorial.
  An example of [generating an alert message](spot/kibana/alerting/internal_errors/spot_severe_internal_errors_message.mustache) used together with the example query is provided.
 
 ## YARN integration
-Spot can import and visualize monitoring metrics from YARN API. 
-The import is performed in a separate [yarn_crawler.py](spot/yarn/yarn_crawler.py) process. 
-This process should be run on a host where it can access YARN API and Elasticserach. 
+Spot can import and visualize monitoring metrics from YARN API.
+The import is performed in a separate [yarn_crawler.py](spot/yarn/yarn_crawler.py) process.
+This process should be run on a host where it can access YARN API and Elasticserach.
 It uses the same configuration `config.ini` as the main `crawler.py` process, where some of the configurations are shared and more are added for YARN specifically.
 The relevant parameters are:
  - `yarn_api_base_url = http://localhost:8088/ws/v1` base url to access YARN API
@@ -229,10 +229,10 @@ The relevant parameters are:
    - `yarn_scheduler_index = spot_yarn_scheduler_<cluster_name>_<id>` stores statistics sampled from the scheduler. It contains documents of multiple types (which can be filtered by `spot.doc_type` filed) for queues, partitions and users
    - `err_index` is shared with the main crawler config. It stores exception messages that appear during yarn_crawler run
  - `skip_exceptions` parameter is shared with the main crawler
- - Elasticsearch configuration (URL and authentication) is shared with the main crawler 
+ - Elasticsearch configuration (URL and authentication) is shared with the main crawler
 
-[Kibana directory](spot/kibana/) contains dashboards which visualize the data collected from YARN. 
-Description of available metrics can be found in [YARN documentation](https://hadoop.apache.org/docs/current/hadoop-yarn/hadoop-yarn-site/ResourceManagerRest.html). 
+[Kibana directory](spot/kibana/) contains dashboards which visualize the data collected from YARN.
+Description of available metrics can be found in [YARN documentation](https://hadoop.apache.org/docs/current/hadoop-yarn/hadoop-yarn-site/ResourceManagerRest.html).
 
-It is planned to enrich Spark jobs metadata with the YARN metadata in future. 
+It is planned to enrich Spark jobs metadata with the YARN metadata in future.
 For instance it would add exact details which are not available from Spark History alone, e.g. vCoresSeconds and memorySeconds.
