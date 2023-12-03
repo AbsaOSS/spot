@@ -3,6 +3,10 @@ api_base_url = http://localhost:18080/api/v1
 # ssl_path = /path/to/mycert.pem
 
 [CRAWLER]
+# Query Spark History for new completed jobs repeatedly (False)
+# or just parse all available jobs once for batch processing (True)
+batch=False
+
 # Time between pulling of new completed runs from Spark History
 sleep_seconds = 10
 

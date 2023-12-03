@@ -13,6 +13,7 @@
 
 import logging
 import time
+import sys
 
 from datetime import datetime, timedelta, timezone
 from dateutil import tz
@@ -452,11 +453,19 @@ def main():
                       )
 
     sleep_seconds = conf.crawler_sleep_seconds
+    batch = conf.crawler_batch
+    if batch:
+        logger.warning('Batch processing is enabled. Crawler will exit after one pass.')
 
     while True:
         crawler.process_new_runs()
         elastic.log_indexes_stats()
+        if batch:
+            break
         time.sleep(sleep_seconds)
+
+    logger.info('Batch processing has finished.')
+    sys.exit(0)
 
 
 if __name__ == '__main__':

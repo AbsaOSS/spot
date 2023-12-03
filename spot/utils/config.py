@@ -103,6 +103,12 @@ class SpotConfig(Config):
         return False
 
     @property
+    def crawler_batch(self):
+        if self.get_boolean('CRAWLER', 'batch'):
+            return True
+        return False
+
+    @property
     def retry_sleep_seconds(self):
         str_val = self.get_property('CRAWLER', 'retry_sleep_seconds')
         if str_val.isdigit():
