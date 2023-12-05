@@ -67,7 +67,7 @@ def main():
         # apps stats
         try:
             finishedTimeBegin = elastic.get_yarn_latest_finished_time()
-            apps = yarn.get_apps(states=['FINISHED'],finishedTimeBegin=finishedTimeBegin)
+            apps = yarn.get_apps(states=['FINISHED', 'KILLED', 'FAILED'], finishedTimeBegin=finishedTimeBegin)
             elastic.save_yarn_apps(apps)
         except Exception as e:
             _handle_processing_exception_(e, 'yarn_apps')
