@@ -178,6 +178,9 @@ class Crawler:
                     if self._app_specific_obj.is_matching_app(app):
                         agg = self._app_specific_obj.post_aggregate(agg)
                 self._save_obj.save_agg(agg)
+                # aggs.remove(agg)
+                del agg
+            del aggs
             return True
         except Exception as e:
             self._handle_processing_exception_(e, 'aggregations', app.get('id', 'unknown'))
@@ -198,9 +201,11 @@ class Crawler:
             apps = self._agg.next_app(min_end_date=min_end_date,
                                       max_end_date=max_end_date,
                                       app_status='completed')
-            for app in apps:
-                self.retry_attempts_remained = self.retry_attempts  # reset retries after successful attempt
-                yield app
+            # for app in apps:  # INVESTIGATE
+            #     self.retry_attempts_remained = self.retry_attempts  # reset retries after successful attempt
+            #     yield app
+            self.retry_attempts_remained = self.retry_attempts  # reset retries after successful attempt
+            return apps
         except Exception as e:
             self._handle_processing_exception_(e, 'listing', 'n/a')
             # if skip_exceptions is set to False, the code will exit by this point
@@ -255,6 +260,8 @@ class Crawler:
                 if app_id not in tabu_ids:
                     new_counter += 1
                     self._process_app(app)
+                   # apps.remove(app)
+                    del app
                     if new_counter % 20 == 0:
                         self.log_processing_stats(processing_start, new_counter)
                 else:
@@ -356,6 +363,8 @@ class Crawler:
                     self._process_app(app)
                     if matched_counter % 20 == 0:
                         self.log_processing_stats(processing_start, matched_counter)
+            apps.remove(app)
+            del app
 
         self._previous_tabu_set = self._new_tabu_set
 

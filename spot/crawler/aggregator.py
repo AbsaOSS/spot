@@ -255,10 +255,11 @@ class HistoryAggregator:
                                            min_end_date=min_end_date_str,
                                            max_end_date=max_end_date_str,
                                            apps_limit=apps_limit)
-        logger.debug(f'{len(apps)} apps found')
+        # logger.debug(f'{len(apps)} apps found')
 
-        for app in reversed(apps):
-            yield self._process_app(app)
+        for app in apps: #reversed(apps):
+            app = self._process_app(app)
+        return reversed(apps)
 
     def _process_app(self, app):
         if self.last_attempt_only:
