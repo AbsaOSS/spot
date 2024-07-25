@@ -178,7 +178,7 @@ class Crawler:
                     if self._app_specific_obj.is_matching_app(app):
                         agg = self._app_specific_obj.post_aggregate(agg)
                 self._save_obj.save_agg(agg)
-                # aggs.remove(agg)
+                aggs.remove(agg)
                 del agg
             del aggs
             return True
@@ -363,7 +363,7 @@ class Crawler:
                     self._process_app(app)
                     if matched_counter % 20 == 0:
                         self.log_processing_stats(processing_start, matched_counter)
-            apps.remove(app)
+            # apps.remove(app)
             del app
 
         self._previous_tabu_set = self._new_tabu_set
