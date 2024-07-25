@@ -178,7 +178,7 @@ class Crawler:
                     if self._app_specific_obj.is_matching_app(app):
                         agg = self._app_specific_obj.post_aggregate(agg)
                 self._save_obj.save_agg(agg)
-                aggs.remove(agg)
+                # aggs.remove(agg)
                 del agg
             del aggs
             return True
