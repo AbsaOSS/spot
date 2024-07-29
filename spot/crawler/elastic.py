@@ -95,6 +95,8 @@ class Elastic:
         return False
 
     def _insert_item(self, index, uid, item):
+        # DEBUG !!!!!!
+        return
         try:
             if uid:
                 res = self.__do_request(self._es.index,

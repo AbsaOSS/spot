@@ -14,7 +14,7 @@
 import logging
 from datetime import datetime, timezone
 
-import spot.crawler.history_api as history_api
+import spot.crawler.mock_history_api as history_api
 from spot.crawler.commons import get_last_attempt, parse_to_bytes, parse_to_bytes_default_MiB, parse_to_bytes_default_KiB,\
     string_to_bool, parse_to_ms
 import spot.utils.setup_logger
