@@ -261,11 +261,12 @@ class Crawler:
                     new_counter += 1
                     self._process_app(app)
                    # apps.remove(app)
-                    del app
                     if new_counter % 20 == 0:
                         self.log_processing_stats(processing_start, new_counter)
                 else:
                     logger.debug(f"skipping app already processed before: {app_id} ")
+            del app
+        del apps
 
         logger.debug(f"Time step {start_time} to {finish_time} processed. "
                     f"Applications total:{apps_counter}, matched: {matched_counter}, new: {new_counter}")
@@ -365,6 +366,7 @@ class Crawler:
                         self.log_processing_stats(processing_start, matched_counter)
             # apps.remove(app)
             del app
+        del apps
 
         self._previous_tabu_set = self._new_tabu_set
 
