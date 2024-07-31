@@ -96,6 +96,7 @@ class Elastic:
 
     def _insert_item(self, index, uid, item):
         # DEBUG !!!!!!
+        logger.debug(f'Pretending to insert item uid {uid} into index {index}')
         return
         try:
             if uid:

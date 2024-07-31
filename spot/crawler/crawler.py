@@ -11,6 +11,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import gc
+from pympler import muppy, summary, refbrowser
+from pympler.tracker import SummaryTracker
+import objgraph
 import logging
 import time
 import sys
@@ -33,7 +37,11 @@ import spot.utils.setup_logger
 from spot.enceladus.menas_aggregator import MenasAggregator
 
 logger = logging.getLogger(__name__)
+#gc.set_debug(gc.DEBUG_STATS)
+tracker = SummaryTracker()
 
+def output_function(o):
+    return str(type(o))
 
 def _include_all_filter(app_name):
     return True
@@ -193,8 +201,8 @@ class Crawler:
             'history_host': self._history_host
         }
         success = self._process_raw(app)
-        if success:  # if no exceptions while getting data
-            self._process_aggs(app)
+        #if success:  # if no exceptions while getting data
+            # self._process_aggs(app)
 
     def _get_next_completed_app(self, min_end_date=None, max_end_date=None):
         try:
@@ -362,9 +370,22 @@ class Crawler:
                 if self._name_filter_func(app_name):
                     matched_counter += 1
                     self._process_app(app)
-                    if matched_counter % 20 == 0:
+                    if matched_counter % 1000 == 0:
                         self.log_processing_stats(processing_start, matched_counter)
-            # apps.remove(app)
+                        unreachable_objects_num = gc.collect()
+                        logger.debug(f"GC: Unreachable objects: {unreachable_objects_num}")
+                        logger.debug(f"GC: STATS: {gc.get_stats()}")
+                        logger.debug(f"GC: count: {gc.get_count()}")
+                        logger.debug(f"GC: uncollectable objects: {gc.garbage}")
+                        all_objects = muppy.get_objects()
+                        sum1 = summary.summarize(all_objects)
+                        summary.print_(sum1)
+                        tracker.print_diff()
+                        objgraph.show_most_common_types(limit=20)
+                        cb = refbrowser.ConsoleBrowser(app, maxdepth=2, str_func=output_function)
+                        cb.print_tree()
+
+                        # apps.remove(app)
             del app
         del apps
 
@@ -408,7 +429,7 @@ class Crawler:
         logger.info(f"processed {runs_number} runs "
                     f"in {delta_seconds} seconds "
                     f"average rate: {per_hour} runs/hour")
-        self._save_obj.log_indexes_stats()
+        # self._save_obj.log_indexes_stats()
 
 
 def main():
